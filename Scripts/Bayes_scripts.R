@@ -1,16 +1,3 @@
-
-# Diagnostic plots
-diagnostic<- function (model){
-  ## Posterior prediction check
-  ppcheck<-pp_check(model)
-  ## MCMC plots - all seems to be nicely sampled
-  trace<- plot(model)
-  ## Posterior means and 95% HDI for each parameter
-  mcmc<-mcmc_plot (model)
-  return (list(ppcheck, trace, mcmc))
-}
-
-
 # Prior predictive simulation 
 prior_sim<- function (model, parameter){
   prior<- prior_samples(model)
@@ -34,8 +21,7 @@ prior_sim<- function (model, parameter){
          main= "Condition probability difference")
   }
 }
-
-
+#-----------------------------------------------------------------------------------------------------------------------------------------
 # Extract total sample for each parameter and Rhat range
 bayes_samples<- function (model){
   n_iter <- (model$fit@sim$iter - model$fit@sim$warmup) * model$fit@sim$chains
@@ -51,9 +37,8 @@ bayes_samples<- function (model){
   print (paste('MCMC sample size:', n_iter))
   return (model_sample)
 } 
-
-
-# function to calculate BF for order restricted model that is used to compare
+#-----------------------------------------------------------------------------------------------------------------------------------------
+# Function to calculate BF for order restricted model that is used to compare
 restricted_BF<- function(ordered_model, total_samples, n_conditions){
   count <- sum(ordered_model)
   prior<-dim(gtools::permutations(n_conditions, n_conditions))[1]
@@ -62,7 +47,7 @@ restricted_BF<- function(ordered_model, total_samples, n_conditions){
   print (paste("Ordered restricted vs unrestricted BF:", ordervsunorder))
   return (ordervsunorder)
 }
-
+#-----------------------------------------------------------------------------------------------------------------------------------------
 # Do latent SD extraction
 latent_SD<- function (posterior){
   log_samples<-posterior %>%
@@ -71,9 +56,8 @@ latent_SD<- function (posterior){
   print(brms::posterior_summary(latent_samples))
   return (latent_samples)
 }
-
-
-# function to create dataset for violin plot and plot the gg object for violin, also display posterior summary for each posterior
+#-----------------------------------------------------------------------------------------------------------------------------------------
+# Function to create dataset for violin plot and plot the gg object for violin, also display posterior summary for each posterior
 violin_bayes<- function (plot.df, CI_range, rope){
   if (missing(CI_range)){
     CI_range<- c(0.025, 0.975)
@@ -96,22 +80,7 @@ violin_bayes<- function (plot.df, CI_range, rope){
   }
   return (list(display_plot,posteriors))
 }
-
-
-# Generate forest plots
-forest_plot<- function (data, ranges){
-  data$cluster<- row.names(data)
-  data$cluster<- factor(data$cluster, levels =data$cluster[order(data$Estimate)])
-  plot<-ggplot(data, aes(x=Estimate, y=cluster))+
-    geom_point()+
-    geom_errorbarh(aes(xmin=Q2.5,xmax=Q97.5))+
-    geom_vline(xintercept = ranges[1], col="black")+
-    geom_vline(xintercept= ranges[2], col="blue")+
-    geom_vline(xintercept= ranges[3], col="blue")+
-    geom_vline(xintercept=0, col="red")
-  return (plot)
-}
-
+#-----------------------------------------------------------------------------------------------------------------------------------------
 # Checking different priors 
 prior_check <- function (intercept, slope, iter, type){
   int<- rnorm (iter, intercept[1], intercept[2])
@@ -132,8 +101,7 @@ prior_check <- function (intercept, slope, iter, type){
     plot (density(b, adjust =0.01), main = "slope")
   }
 }
-
-
+#-----------------------------------------------------------------------------------------------------------------------------------------
 # Function used to calculate the difference on the probability scale given ROPE
 ROPE<- function (value, int_parameter){
   intercept<- rnorm(1e4, int_parameter[1], int_parameter[2])
