@@ -15,21 +15,18 @@ output: html_document
 ```{r setup, include=FALSE}
 # Load packages
 if (!require(pacman)) install.packages('pacman')
-pacman::p_load(sjstats,sjPlot,lme4,lmerTest,emmeans,ggeffects,tidyverse,MuMIn,brms,bayestestR)
-
-# Set working directory
-setwd('C:/Users/dpen466/Google Drive/Phd (1)/PhD_writing/IPE_IPEF/Results/Analysis/') #to change
+pacman::p_load(sjstats,sjPlot,lme4,ordinal,lmerTest,emmeans,ggeffects,tidyverse,MuMIn,brms,bayestestR)
 
 # Source custom functions
-source("source/LMM_scripts.R")
-source("source/Bayes_scripts.R")
+source("LMM_scripts.R")
+source("Bayes_scripts.R")
 ```
 
 # Experiment 1
 ## Data 
 * Data loading and setup
 ```{r}
-Exp1.df<- read.csv('Experiment1_N=40.csv', header=T)
+Exp1.df<- read.csv('../../Experiment1_N=40.csv', header=T)
 
 # Remove deleted trials from data frame
 Exp1.df<- Exp1.df[complete.cases(Exp1.df$Condition),]
@@ -59,18 +56,12 @@ Exp1_int$Condition<- droplevels(Exp1_int$Condition)
 ### Contrast between version 1 and 2
 ```{r}
 # Detail--Model:lmer(Detail.response~Version+(1|Participant)+(1|Story_ID), data=Exp1.df)
-Vdiff_det<- lmer(Detail.response~Version+(1|Participant)+(1|Story_ID), data=Exp1.df)
-saveRDS(Vdiff_det, "Vdiff_det.rds")
 summary(readRDS("Vdiff_det.rds"))
 #-----------------------------------------------------------------------------------------------------------------------
 # Coherence--Model:lmer(Coherence.response~Version+(1|Participant)+(1|Story_ID), data=Exp1.df)
-Vdiff_coh<- lmer(Coherence.response~Version+(1|Participant)+(1|Story_ID), data=Exp1.df)
-saveRDS(Vdiff_coh, "Vdiff_coh.rds")
 summary(readRDS("Vdiff_coh.rds"))
 #-----------------------------------------------------------------------------------------------------------------------
 # Willingness to help--Model:lmer(help.response~Version+(1|Participant)+(1|Story_ID), data=Exp1.df)
-Vdiff_help<-lmer(help.response~Version+(1|Participant)+(1|Story_ID), data=Exp1.df)
-saveRDS(Vdiff_help, "Vdiff_help.rds")
 summary(readRDS("Vdiff_help.rds"))
 ```
 
@@ -84,12 +75,6 @@ ranova(lmer(help.response~(1|Participant)+(1|Story_ID), data=Exp1.df))
 ### Replication of prosocial simulation effect
 ```{r}
 # Parsimonious model: lmer(help.response~Condition+(dummy_img+dummy_est|Participant)+(1|Story_ID), data= Exp1.df)
-step(lmer(help.response~Condition+(dummy_est+dummy_img||Participant)+(dummy_est+dummy_img||Story_ID), data= Exp1.df))
-zcp_rm1<- lmer(help.response~Condition+(dummy_img+dummy_est||Participant)+(1|Story_ID), data= Exp1.df)
-PSE_exp1<- lmer(help.response~Condition+(dummy_img+dummy_est|Participant)+(1|Story_ID), data= Exp1.df)
-anova(zcp_rm1,PSE_exp1, refit=F)
-saveRDS(PSE_exp1, "PSE_exp1.rds")
-
 # Summary
 summary(PSE_exp1<-readRDS("PSE_exp1.rds"))
 # F-test with Kenward-Roger approximation of degress of freedom
@@ -112,13 +97,6 @@ bar_plot(means_exp1) +
 ### Vividness measure by simulation condition interactions
 ```{r}
 # Detail--Parsimonious model: lmer (help.response~Condition*Detail_C+(dummy_img+dummy_img:Detail_C|Participant)+(Detail_C|Story_ID),data= Exp1_int)
-step(lmer (help.response~Condition*Detail_C+(dummy_img*Detail_C||Participant)+ (dummy_img*Detail_C||Story_ID),data= Exp1_int))
-int_rm_det1<- lmer (help.response~Condition*Detail_C+(dummy_img+dummy_img:Detail_C||Participant)+(Detail_C||Story_ID),data= Exp1_int)
-int_det_exp1<- lmer (help.response~Condition*Detail_C+(dummy_img+dummy_img:Detail_C|Participant)+(Detail_C|Story_ID),data= Exp1_int)
-int_det_exp1<-refit_LMM(int_det_exp1) ## Model failed to converge, refit the model with better starting values (i.e. end values of previous fits) for REML. Model converged after 3 refits
-anova(int_rm_det1,int_det_exp1, refit=F) ## Inlcuding correlation parameters significantly improve model fit.
-saveRDS(int_det_exp1, "int_det_exp1.rds")
-
 # Summary
 summary(int_det_exp1<-readRDS("int_det_exp1.rds"))
 confint(int_det_exp1, "ConditionImagine:Detail_C")
@@ -128,13 +106,6 @@ anova(int_det_exp1, test='kenward-roger')
 r.squaredGLMM(int_det_exp1)
 #------------------------------------------------------------------------------------------------------------------------
 # Coherence--Parsimonious model:lmer (help.response~Condition*Coherence_C+(dummy_img|Participant)+(Coherence_C|Story_ID),data= Exp1_int)
-step(lmer (help.response~Condition*Coherence_C+(dummy_img*Coherence_C||Participant)+(dummy_img*Coherence_C||Story_ID),data= Exp1_int)) 
-int_rm_coh1<- lmer (help.response~Condition*Coherence_C+(dummy_img||Participant)+ (Coherence_C||Story_ID),data= Exp1_int)
-int_coh_exp1<- lmer (help.response~Condition*Coherence_C+(dummy_img|Participant)+(Coherence_C|Story_ID),data= Exp1_int)
-int_coh_exp1<-refit_LMM(int_coh_exp1)## Model converged after 3 refits
-anova(int_rm_coh1,int_coh_exp1, refit=F)
-saveRDS(int_coh_exp1, "int_coh_exp1.rds")
-
 # Summary
 summary(int_coh_exp1<-readRDS("int_coh_exp1.rds"))
 confint(int_coh_exp1, "ConditionImagine:Coherence_C")
@@ -144,14 +115,9 @@ anova(int_coh_exp1, test='kenward-roger')
 r.squaredGLMM(int_coh_exp1)
 #------------------------------------------------------------------------------------------------------------------------
 # frequentist CLMMs analysis
-# Detail
-library (ordinal)
-oridnal1.df<- Exp1_int
-oridnal1.df$help.response<- as.factor (oridnal1.df$help.response)
-ordinal_det1<-clmm(help.response~Condition*Detail_C+(dummy_img+dummy_img:Detail_C|Participant)+(Detail_C|Story_ID),data= oridnal1.df,link="logit")
-saveRDS(ordinal_det1, "ordinal_det1.rds")
-
-summary(ordinal_det1)
+# Detail--model: clmm(help.response~Condition*Detail_C+(dummy_img+dummy_img:Detail_C|Participant)+(Detail_C|Story_ID),data= oridnal1.df,link="logit")
+summary(ordinal_det1<-readRDS("ordinal_det1.rds"))
+confint(ordinal_det1,"ConditionImagine:Detail_C")
 ```
 
 #### Plots
@@ -171,93 +137,25 @@ ggpredict(int_coh_exp1, c("Coherence_C[-4,0,4]","Condition"))%>% plot() +
   scale_fill_discrete(labels = c("Estimate Helping", "Imagine Helping"))
 ```
 ## Bayesian Cumulative Link Mixed Models
-### Assess differences between versions
-```{r}
-# Detail-- model: 
-Vdiff_det_bayes<- brm(data= Exp1_int, family=cumulative("logit"), 
-                  bf(Detail.response~Version+(1|Participant)+(Version|Story_ID)) +
-                      lf(disc ~ 0+Version, cmc=F), 
-                  prior= c(prior(normal (0,1), class=b), 
-                           prior(normal(0,1.2), class=Intercept),
-                           prior(exponential(1), class= sd),
-                           prior(lkj(1), class = cor)),
-                  iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
-saveRDS(Vdiff_det_bayes, "Vdiff_det_bayes.rds")
-
-Vdiff_det_bayes<-readRDS("Vdiff_det_bayes.rds")
-# Summary 
-summary(Vdiff_det_bayes, prob=0.89)
-# BF01
-(BF01_detV<-hypothesis(Vdiff_det_bayes, hypothesis =c("Version2=0"),alpha=0.055, seed=67));plot(BF01_detV)
-# pd
-colMeans(BF01_detV$samples<0/4e4)
-# % in ROPE
-rope(BF01_detV$samples,ci=1, range = c(-0.1, 0.1))
-#------------------------------------------------------------------------------------------------------------------------
-# Coherence-- model: 
-Vdiff_coh_bayes<- brm(data= Exp1_int, family=cumulative("logit"), 
-                  bf(Coherence.response~Version+(1|Participant)+(Version|Story_ID))+
-                       lf(disc ~ 0+Version, cmc=F), 
-                  prior= c(prior(normal (0,1), class=b), 
-                           prior(normal(0,1.2), class=Intercept),
-                           prior(exponential(1), class= sd),
-                           prior(lkj(1), class = cor)),
-                  iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
-saveRDS(Vdiff_coh_bayes, "Vdiff_coh_bayes.rds")
-
-Vdiff_coh_bayes<-readRDS("Vdiff_coh_bayes.rds")
-# Summary 
-summary(Vdiff_coh_bayes, prob=0.89)
-# BF01
-(BF01_cohV<-hypothesis(Vdiff_coh_bayes, hypothesis =c("Version2=0"),alpha=0.055, seed=67));plot(BF01_cohV)
-# pd
-colMeans(BF01_cohV$samples<0/4e4)
-# % in ROPE
-rope(BF01_cohV$samples,ci=1, range = c(-0.1, 0.1))
-#------------------------------------------------------------------------------------------------------------------------
-# Help -- model: 
-Vdiff_help_bayes<- brm(data= Exp1.df, family=cumulative("logit"), 
-                  bf(help.response~Version+(1|Participant)+(Version|Story_ID))+
-                   lf(disc ~ 0+Version, cmc=F), 
-                  prior= c(prior (normal(0,1), class=b), 
-                           prior(normal(0,1.2), class=Intercept),
-                           prior(exponential(1), class= sd),
-                           prior(lkj(1), class = cor)), 
-                  iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
-
-saveRDS(Vdiff_help_bayes, "Vdiff_help_bayes.rds")
-
-Vdiff_help_bayes<-readRDS("Vdiff_help_bayes.rds")
-# Summary 
-summary(Vdiff_help_bayes, prob=0.89)
-# BF01
-(BF01_helpV<-hypothesis(Vdiff_help_bayes, hypothesis =c("Version2=0"),alpha=0.055, seed=67));plot(BF01_helpV)
-# pd
-colMeans(BF01_helpV$samples>0/4e4)
-# % in ROPE
-rope(BF01_helpV$samples,ci=1, range = c(-0.1, 0.1))
-```
-
-
-
 ### Replication of Prosocial Simulation Effect
 ```{r}
-# Model
-Bayes_Help_exp1<- brm(data= Exp1.df, family=cumulative("logit"), 
-                  bf(help.response~Condition+(Condition|Participant)+(Condition|Story_ID))+
-                   lf(disc ~ 0+Condition, cmc=F),
-                  prior= c(prior(normal (0.2,1), class=b, coef='ConditionImagine'),    
-                           prior (normal(0,1), class=b, coef='ConditionEstimate'), 
-                           prior(normal(0,1.2), class=Intercept),
-                           prior(exponential(1), class= sd),
-                           prior(lkj(1), class = cor)), 
-                  iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
-saveRDS(Bayes_Help_exp1, "Bayes_Help_exp1.rds")
+# Model:
+# brm(data= Exp1.df, family=cumulative("logit"), 
+#     bf(help.response~Condition+(Condition|Participant)+(Condition|Story_ID))+
+#        lf(disc ~ 0+Condition, cmc=F),
+#     prior= c(prior(normal (0.2,1), class=b, coef='ConditionImagine'),    
+#              prior (normal(0,1), class=b, coef='ConditionEstimate'), 
+#              prior(normal(0,1.2), class=Intercept),
+#              prior(exponential(1), class= sd),
+#              prior(lkj(1), class = cor)), 
+#     iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
 
 Bayes_Help_exp1<- readRDS("Bayes_Help_exp1.rds")
 # Diagnostic Checks: pp check and traceplots
 pp_check(Bayes_Help_exp1)
 plot(Bayes_Help_exp1)
+# Prior predictive simulation 
+prior_sim(Bayes_Help_exp1, c("sd_Participant", 'cor_Participant', "b_ConditionImagine", "b_ConditionEstimate"))
 # Total number of Sample size and sample sizes for each parameter
 bayes_samples(Bayes_Help_exp1)
 
@@ -269,6 +167,11 @@ summary(Bayes_Help_exp1, prob=0.89)
 colMeans(ER_help1$samples>0/4e4)
 # % in ROPE
 rope(ER_help1$samples,ci=1, range = c(-0.1, 0.1))
+
+# Extract posterior samples 
+set.seed(67);posterior_exp1<- posterior_samples(Bayes_Help_exp1)
+# Latent SD of simulation conditions
+latent_SD(posterior_exp1)
 ```
 
 #### Plots
@@ -296,63 +199,21 @@ plot(PSE_plot_exp1)[[1]] +
 
 
 
-#### Order restricted model. 
-* Models to be compared
-** 1) a null model: all conditions (including controls) are ~ equal
-** 2) ordered model1: Imagine > Estimate > Identify
-** 3) ordered model2: Imagine > Estimate = Identify
 
-```{r}
-# Null model 
-null_exp1<- brm(data= Exp1.df, family=cumulative("logit"), 
-                  help.response~1+(1|Participant)+(1|Story_ID),
-                  prior= c(prior(normal(0,1.2), class=Intercept),
-                           prior(exponential(1), class= sd)), 
-                  iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
-
-# The first order restricted model: Imagine > Estimate > Identify
-## First, we compare the unrestricted model to the null model using the brms::bayes_factor function 
-set.seed (67)
-unrestricted_exp1 <- bayes_factor(Bayes_Help_exp1, null_exp1)
-unrestricted.vsnull_exp1 <- unrestricted_exp1$bf
-
-## Then, we can compare the unrestricted model to the first order restricted model
-restrictedmodel1_exp1<- (posterior_exp1[, "b_ConditionEstimate"] > 0) & 
-  (posterior_exp1[, "b_ConditionImagine"] > 0) &
-  (posterior_exp1[, "b_ConditionImagine"]>posterior_exp1[, "b_ConditionEstimate"])
-(restrictedmodel1_BF_exp1<-restricted_BF(restrictedmodel1_exp1, 4e4, 3))
-
-##Then, we can compare the null to the order restricted model, by transitive property:
-(restricted1.vsnull_exp1 <- restrictedmodel1_BF_exp1 * unrestricted.vsnull_exp1)
-
-# The second order restricted model: Imagine > Estimate = Identify
-## Then, we can compare the unrestricted model to the second order restricted model
-restrictedmodel2_exp1<- (abs(posterior_exp1[, "b_ConditionEstimate"]) < 0.05) & 
-  (posterior_exp1[, "b_ConditionImagine"] >0) &
-  (posterior_exp1[, "b_ConditionImagine"]>posterior_exp1[, "b_ConditionEstimate"])
-(restrictedmodel2_BF_exp1<-restricted_BF(restrictedmodel2_exp1, 4e4, 3))
-
-## By transitive property:
-(restricted2.vsnull_exp1 <- restrictedmodel2_BF_exp1 * unrestricted.vsnull_exp1)
-
-# Contrast the 2 order restricted models
-(restricted1.vsrestricted2_exp1 <- restrictedmodel1_BF_exp1 * (1/(restrictedmodel2_BF_exp1)))
-```
 
 
 
 ### Vividness measures by simulation condition interactions
 ```{r}
 # Detail -- Model:
-Bayes_det_exp1<- brm(data= Exp1_int, family=cumulative("logit"), 
-                  bf(help.response~Condition*Detail_C+(Condition*Detail_C|Participant)+(Condition*Detail_C|Story_ID))+
-                       lf(disc ~ 0+Condition, cmc=F), 
-                  prior= c(prior(normal (0.2,1), class=b), 
-                           prior(normal(0,1.2), class=Intercept),
-                           prior(exponential(1), class= sd),
-                           prior(lkj(1), class = cor)),
-                  iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
-saveRDS(Bayes_det_exp1, "Bayes_det_exp1.rds")
+# brm(data= Exp1_int, family=cumulative("logit"), 
+#      bf(help.response~Condition*Detail_C+(Condition*Detail_C|Participant)+(Condition*Detail_C|Story_ID)) +
+#         lf(disc ~ 0+Condition, cmc=F), 
+#      prior= c(prior(normal (0.2,1), class=b), 
+#               prior(normal(0,1.2), class=Intercept),
+#               prior(exponential(1), class= sd),
+#               prior(lkj(1), class = cor)),
+#      iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
 
 Bayes_det_exp1<- readRDS("Bayes_det_exp1.rds")
 # Diagnostic Checks: pp check and traceplots
@@ -374,16 +235,14 @@ set.seed(67);posterior_det_exp1<- posterior_samples(Bayes_det_exp1)
 latent_SD(posterior_det_exp1)
 #------------------------------------------------------------------------------------------------------------------------
 # Coherence -- Model: 
-Bayes_coh_exp1<- brm(data= Exp1_int, family=cumulative("logit"), 
-                  bf(help.response~Condition*Coherence_C+(Condition*Coherence_C|Participant)+(Condition*Coherence_C|Story_ID))+
-                    lf(disc ~ 0+Condition, cmc=F),
-                  prior= c(prior(normal (0.2,1), class=b),
-                           prior(normal(0,1.2), class=Intercept),
-                           prior(exponential(1), class= sd),
-                           prior(lkj(1), class = cor)),
-                  iter=7000,warmup=2000,chains=8, cores=8, seed=67,  sample_prior=T)
-saveRDS(Bayes_coh_exp1, "Bayes_coh_exp1.rds")
-
+#brm(data= Exp1_int, family=cumulative("logit"), 
+#     bf(help.response~Condition*Coherence_C+(Condition*Coherence_C|Participant)+(Condition*Coherence_C|Story_ID)) +
+#        lf(disc ~ 0+Condition, cmc=F),
+#     prior= c(prior(normal (0.2,1), class=b),
+#              prior(normal(0,1.2), class=Intercept),
+#              prior(exponential(1), class= sd),
+#              prior(lkj(1), class = cor)),
+#     iter=7000,warmup=2000,chains=8, cores=8, seed=67,  sample_prior=T)
 
 Bayes_coh_exp1<- readRDS("Bayes_coh_exp1.rds")
 # Diagnostic Checks: pp check and traceplots
@@ -393,7 +252,7 @@ plot(Bayes_coh_exp1)
 bayes_samples(Bayes_coh_exp1)
 
 # Summary
-summary(Bayes_coh_exp1, prob=0.95)
+summary(Bayes_coh_exp1, prob=0.89)
 # pd
 p_direction(Bayes_coh_exp1, parameters = c("b_Coherence_C", "b_Condition"))
 # % in ROPE
@@ -418,7 +277,7 @@ violin_det1 +
   ylim(-0.2, 1.5)
 
 # Summary
-(posterior_summary(det_posterior1, probs=  c(0.055, 0.945)))
+violin_bayes(plot_det1,CI_range =  c(0.055, 0.945))[[2]]
 # pd 
 p_direction(det_posterior1)
 # % in ROPE
@@ -436,7 +295,7 @@ violin_coh1+
   ylim(-0.2, 1.5)
 
 # Summary
-(posterior_summary(coh_posterior1, probs=  c(0.055, 0.945)))
+violin_bayes(plot_coh1,CI_range =  c(0.055, 0.945))[[2]]
 # pd 
 p_direction(coh_posterior1)
 # % in ROPE
@@ -452,7 +311,7 @@ violin_int1+
   theme(legend.position = "none")+
   ylim(-0.5, 1.5)
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
-# Predicted linear trend: Detail
+# Predicted linear trend overlay compression of scale constraint:: Detail
 detplot1<- conditional_effects(Bayes_det_exp1)
 plot(detplot1)[[3]] +
   xlim(-4, 5) +
@@ -462,7 +321,7 @@ plot(detplot1)[[3]] +
   ylab ("Willingness to Help") +
   xlab ("Detail")
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
-# Predicted linear trend: Coherencee
+# Predicted linear trend overlay compression of scale constraint: Coherencee
 cohplot1<- conditional_effects(Bayes_coh_exp1)
 plot(cohplot1)[[3]]+
   xlim(-4, 4)+
