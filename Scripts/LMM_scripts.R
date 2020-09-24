@@ -12,3 +12,19 @@ bar_plot<- function (means){
                 theme_classic()
   return (plot)
 }
+
+
+# Extract participant means
+means <- function(var,grp) {
+  return(tapply(var,grp,mean,na.rm=T)[grp])
+}
+
+# groupe centering 
+group_center <- function(var,grp) {
+  return(var-tapply(var,grp,mean,na.rm=T)[grp])
+}
+# refit LMM with a bettert start position
+refit_LMM<- function (model){
+  re_model<- update(model, .~., start= getME(model, 'theta'))
+  return (re_model)
+}
