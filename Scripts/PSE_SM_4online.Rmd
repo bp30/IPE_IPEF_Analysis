@@ -65,9 +65,12 @@ summary(readRDS("Vdiff_coh.rds"))
 # Willingness to help--Model:lmer(help.response~Version+(1|Participant)+(1|Story_ID), data=Exp1.df)
 summary(readRDS("Vdiff_help.rds"))
 ```
+
 ### Replication of PSE
 ```{r}
-# Parsimonious model: lmer(help.response~Condition+(dummy_img+dummy_est|Participant)+(1|Story_ID), data= Exp1.df)
+# Parsimonious model: 
+
+PSE_exp1<-lmer(help.response~Condition+(dummy_img+dummy_est|Participant)+(1|Story_ID), data= Exp1.df)
 # Summary
 summary(PSE_exp1<-readRDS("PSE_exp1.rds"))
 # F-test with Kenward-Roger approximation of degress of freedom
@@ -76,6 +79,9 @@ anova(PSE_exp1, test='kenward-roger')
 r.squaredGLMM(PSE_exp1)
 # Post hoc comparisons
 (posthoc_exp1<- emmeans(PSE_exp1, pairwise~Condition, adjust= 'bonferroni'))
+
+saveRDS(posthoc_exp1, "posthoc_exp1.rds")
+(posthoc_exp1<-readRDS("posthoc_exp1.rds"))
 confint (posthoc_exp1)
 ```
 #### Plots
@@ -367,7 +373,11 @@ readRDS("VE2.rds")
 
 ### Replication of PSE
 ```{r}
-# Parsimonious model: lmer(help.response~Condition+Gender_C*Face_gender_C+(dummy_img|participant)+(1|Story_ID), data= Exp2.df)
+# Parsimonious model: 
+
+
+PSE_exp2<-lmer(help.response~Condition+Gender_C*Face_gender_C+(dummy_img|participant)+(1|Story_ID), data= Exp2.df)
+PSE_exp2<-refit_LMM(PSE_exp2)
 # Summary
 summary(PSE_exp2<-readRDS("PSE_exp2.rds"))
 # F-test with Kenward-Roger approximation of degress of freedom
@@ -376,6 +386,13 @@ anova(PSE_exp2, test='kenward-roger')
 r.squaredGLMM(PSE_exp2)
 # Post hoc comparisons
 (posthoc_exp2<- emmeans(PSE_exp2, pairwise~Condition, adjust= 'bonferroni'))
+confint (posthoc_exp2)
+
+
+
+saveRDS(posthoc_exp2, "posthoc_exp2.rds")
+(posthoc_exp2<-readRDS("posthoc_exp2.rds"))
+
 confint (posthoc_exp2)
 ```
 
