@@ -635,40 +635,19 @@ combined.df<- combined.df%>% mutate(dummy_img= as.numeric(Condition=='Imagine'))
 combined.df$Experiment <- as.factor (combined.df$Experiment)
 ```
 
-### Frequentist
-```{r}
-# Detail
-step(lmer (help.response~Condition*Detail_C+(dummy_img*Detail_C||Participant)+ (dummy_img*Detail_C||Story_ID),data= combined.df))
-int_rm_det3<- lmer (help.response~Condition*Detail_C+(dummy_img+Detail_C|Participant)+(Detail_C||Story_ID),data= combined.df)
-int_rm_det3<- refit_LMM(int_rm_det3)
-int_det_exp3<- lmer (help.response~Condition*Detail_C+(dummy_img+dummy_img:Detail_C|Participant)+(Detail_C|Story_ID),data= combined.df)
-
-## Test of fixed effects using F-test
-anova(int_det_exp3, test='kenward-roger')
-summary(int_det_exp3);confint(int_det_exp3, "ConditionImagine:Detail_C")
-#Detail (not significant)
-ggpredict(int_det_exp3, c("Detail_C[-4,0,4]","Condition"))%>% plot()+ labs(title="",x="Detail", y = "Willingness to help")+theme_classic()
-
-# frequentist ordinal analysis
-library (ordinal)
-test<- combined.df
-test$help.response<- as.factor (test$help.response)
-summary(clmm(help.response~Condition*Detail_C+(dummy_img+dummy_img:Detail_C|Participant)+(Detail_C|Story_ID),data= test,link="logit"))
-```
 ### Bayesian CLMMs
 #### 3-way interactions
 * See vividness by simulation condition effect differ by experiment
 ```{r}
 # Detail--Model:
-Bayes_det_3way<- brm(data= combined.df, family=cumulative("logit"), 
-                  bf(help.response~Condition*Detail_C*Experiment+(Condition*Detail_C|Participant)+(Condition*Detail_C|Story_ID))+
-                       lf(disc ~ 0+Condition, cmc=F), 
-                  prior= c(prior(normal (0,1), class=b), 
-                           prior(normal(0,1.2), class=Intercept),
-                           prior(exponential(1), class= sd),
-                           prior(lkj(1), class = cor)),
-                  iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
-saveRDS(Bayes_det_3way, "Bayes_det_3way.rds")
+#brm(data= combined.df, family=cumulative("logit"), 
+#    bf(help.response~Condition*Detail_C*Experiment+(Condition*Detail_C|Participant)+(Condition*Detail_C|Story_ID))+
+#       lf(disc ~ 0+Condition, cmc=F), 
+#    prior= c(prior(normal (0,1), class=b), 
+#             prior(normal(0,1.2), class=Intercept),
+#             prior(exponential(1), class= sd),
+#             prior(lkj(1), class = cor)),
+#    iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
 
 Bayes_det_3way<-readRDS("Bayes_det_3way.rds")
 # Diagnostic Checks: pp check and traceplots
@@ -687,15 +666,14 @@ colMeans(BF01_det_3way$samples>0/4e4)
 rope(BF01_det_3way$samples,ci=1, range = c(-0.1, 0.1))
 #--------------------------------------------------------------------------------------------------------------------------------------------------------
 # Coherence--Model:
-Bayes_coh_3way<- brm(data= combined.df, family=cumulative("logit"), 
-                  bf(help.response~Condition*Coherence_C*Experiment+(Condition*Coherence_C|Participant)+(Condition*Coherence_C|Story_ID))+
-                       lf(disc ~ 0+Condition, cmc=F), 
-                  prior= c(prior(normal (0,1), class=b), 
-                           prior(normal(0,1.2), class=Intercept),
-                           prior(exponential(1), class= sd),
-                           prior(lkj(1), class = cor)),
-                  iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
-saveRDS(Bayes_coh_3way, "Bayes_coh_3way.rds")
+# brm(data= combined.df, family=cumulative("logit"), 
+#     bf(help.response~Condition*Coherence_C*Experiment+(Condition*Coherence_C|Participant)+(Condition*Coherence_C|Story_ID))+
+#        lf(disc ~ 0+Condition, cmc=F), 
+#     prior= c(prior(normal (0,1), class=b), 
+#              prior(normal(0,1.2), class=Intercept),
+#              prior(exponential(1), class= sd),
+#              prior(lkj(1), class = cor)),
+#     iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
 
 Bayes_coh_3way<-readRDS("Bayes_coh_3way.rds")
 # Diagnostic Checks: pp check and traceplots
@@ -707,11 +685,11 @@ bayes_samples(Bayes_coh_3way)
 # Summary
 summary(Bayes_coh_3way, prob=0.89)
 # BF01
-(BF01_det_3way<-hypothesis(Bayes_coh_3way, hypothesis ="ConditionImagine:Coherence_C:Experiment2 =0", seed=67, alpha=0.055));plot(BF01_det_3way)
+(BF01_coh_3way<-hypothesis(Bayes_coh_3way, hypothesis ="ConditionImagine:Coherence_C:Experiment2 =0", seed=67, alpha=0.055));plot(BF01_det_3way)
 # pd
-colMeans(BF01_det_3way$samples>0/4e4)
+colMeans(BF01_coh_3way$samples>0/4e4)
 # % in ROPE
-rope(BF01_det_3way$samples,ci=1, range = c(-0.1, 0.1))
+rope(BF01_coh_3way$samples,ci=1, range = c(-0.1, 0.1))
 ```
 
 
@@ -719,14 +697,14 @@ rope(BF01_det_3way$samples,ci=1, range = c(-0.1, 0.1))
 #### Simulation Condition by Vividness measures interactions
 ```{r}
 # Detail--Model:
-Bayes_det_combine<- brm(data= combined.df, family=cumulative("logit"), 
-                  bf(help.response~Condition*Detail_C+(Condition*Detail_C|Participant)+(Condition*Detail_C|Story_ID))+
-                       lf(disc ~ 0+Condition, cmc=F), 
-                  prior= c(prior(normal (0.2,1), class=b), 
-                           prior(normal(0,1.2), class=Intercept),
-                           prior(exponential(1), class= sd),
-                           prior(lkj(1), class = cor)),
-                  iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
+# brm(data= combined.df, family=cumulative("logit"), 
+#     bf(help.response~Condition*Detail_C+(Condition*Detail_C|Participant)+(Condition*Detail_C|Story_ID))+
+#        lf(disc ~ 0+Condition, cmc=F), 
+#     prior= c(prior(normal (0.2,1), class=b), 
+#              prior(normal(0,1.2), class=Intercept),
+#              prior(exponential(1), class= sd),
+#              prior(lkj(1), class = cor)),
+#     iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
 saveRDS(Bayes_det_combine, "Bayes_det_combine.rds")
 
 Bayes_det_combine<- readRDS("Bayes_det_combine.rds")
@@ -749,15 +727,14 @@ set.seed(67);posterior_det_combine<- posterior_samples(Bayes_det_combine)
 latent_SD(Bayes_det_combine)
 #-------------------------------------------------------------------------------------------------------------------------------
 # Coherence--Model:
-Bayes_coh_combine<- brm(data= combined.df, family=cumulative("logit"), 
-                  bf(help.response~Condition*Coherence_C+(Condition*Coherence_C|Participant)+(Condition*Coherence_C|Story_ID))+
-                       lf(disc ~ 0+Condition, cmc=F), 
-                  prior= c(prior(normal (0.2,1), class=b), 
-                           prior(normal(0,1.2), class=Intercept),
-                           prior(exponential(1), class= sd),
-                           prior(lkj(1), class = cor)),
-                  iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
-saveRDS(Bayes_coh_combine, "Bayes_coh_combine.rds")
+# brm(data= combined.df, family=cumulative("logit"), 
+#     bf(help.response~Condition*Coherence_C+(Condition*Coherence_C|Participant)+(Condition*Coherence_C|Story_ID))+
+#        lf(disc ~ 0+Condition, cmc=F), 
+#     prior= c(prior(normal (0.2,1), class=b), 
+#              prior(normal(0,1.2), class=Intercept),
+#              prior(exponential(1), class= sd),
+#              prior(lkj(1), class = cor)),
+#     iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
 
 Bayes_coh_combine<- readRDS("Bayes_coh_combine.rds")
 # Diagnostic Checks: pp check and traceplots
@@ -778,92 +755,8 @@ set.seed(67);posterior_coh_combine<- posterior_samples(Bayes_coh_combine)
 # Latent SD of simulation conditions
 latent_SD(posterior_coh_combine)
 ```
-
-
-
-##### Plots
-```{r}
-# Violin plots -- Detail: Separate Conditions
-det_posterior2<- cbind.data.frame('Estimate Helping' = posterior_det_exp2$b_Detail_C, "Imagine Helping" = posterior_det_exp2$b_Detail_C + posterior_det_exp2$`b_ConditionImagine:Detail_C`)
-plot_det2<- det_posterior2 %>% gather("Estimate Helping", "Imagine Helping", key= Condition, value= Posterior)
-violin_det2<- violin_bayes(plot_det2, rope=c(-0.1, 0.1))[[1]]
-violin_det2 +
-  labs(x="Simulation Condition", y = expression (beta)) +
-  stat_boxplot(geom = "errorbar", width = 0.1, coef=0.7) +
-  theme(legend.position='none') +
-  ylim(-0.2, 1.5)
-
-# Summary
-(posterior_summary(det_posterior2, probs=  c(0.055, 0.945)))
-# pd 
-p_direction(det_posterior2 )
-# % in ROPE
-rope(det_posterior2,ci=1, range = c(-0.10, 0.10))
-#-------------------------------------------------------------------------------------------------------------------------------------------------------
-# Violin plots -- Coherence: Separate Conditions
-coh_posterior2<- cbind.data.frame('Estimate Helping' = posterior_coh_exp2$b_Coherence_C, "Imagine Helping" = posterior_coh_exp2$b_Coherence_C + posterior_coh_exp2$`b_ConditionImagine:Coherence_C`)
-plot_coh2<- coh_posterior2 %>% gather("Estimate Helping", "Imagine Helping", key= Condition, value= Posterior)
-violin_coh2<- violin_bayes(plot_coh2, rope=c(-0.1, 0.1))[[1]]
-violin_coh2+
-  labs(x="Simulation Condition", y = expression (beta))+
-  stat_boxplot(geom = "errorbar", width = 0.1, coef=0.7)+
-  theme(legend.position='none')+
-  scale_x_discrete(labels=c( "Estimate Helping", "Imagine Helping"))+
-  ylim(-0.2, 1.5)
-
-# Summary
-(posterior_summary(coh_posterior2, probs=  c(0.055, 0.945)))
-# pd 
-p_direction(coh_posterior2)
-# % in ROPE
-rope(coh_posterior2,ci=1, range = c(-0.10, 0.10))
-#-------------------------------------------------------------------------------------------------------------------------------------------------------
-# Violin plots -- Detail and Coherence interaction effects
-plot_int2<- cbind.data.frame("Detail" = posterior_det_exp2$`b_ConditionImagine:Detail_C`, "Coherence" = posterior_coh_exp2$`b_ConditionImagine:Coherence_C`)
-plot_int2<- plot_int2 %>% gather("Detail", "Coherence", key= Condition, value= Posterior)
-violin_int2<- violin_bayes(plot_int2, rope=c(-0.1, 0.1))[[1]]
-violin_int2+
-  labs(x="Vivindess by Simulation Condition Interactions", y = expression(beta))+
-  stat_boxplot(geom = "errorbar", width = 0.1, coef=0.70) + 
-  theme(legend.position = "none")+
-  ylim(-0.5, 1.5)
-```
 ##### Violin plots
 ```{r}
-# Violin plots -- Detail: separate conditions
-det_posterior3<- cbind.data.frame("Estimate Helping" = posterior_det_combine$b_Detail_C, "Imagine Helping" = posterior_det_combine$b_Detail_C + posterior_det_combine$`b_ConditionImagine:Detail_C`)
-plot_det3<- det_posterior2 %>% gather("Estimate Helping", "Imagine Helping", key= Condition, value= Posterior)
-violin_det3<- violin_bayes(plot_det3, rope= c(-0.1, 0.1))[[1]]
-violin_det3+
-  labs(x="Condition", y = expression (beta))+
-  stat_boxplot(geom = "errorbar", width = 0.1, coef=0.7)+
-  theme(legend.position='none')+
-  ylim(-0.2, 1.5)
-
-# Summary
-(posterior_summary(det_posterior3, probs=  c(0.055, 0.945)))
-# pd 
-p_direction(det_posterior3)
-# % in ROPE
-rope(det_posterior3,ci=1, range = c(-0.10, 0.10))
-#-------------------------------------------------------------------------------------------------------------------------------------------------------
-# Violin plots -- Coherence: Separate Conditions
-coh_posterior3<- cbind.data.frame('Estimate Helping' = posterior_coh_combine$b_Coherence_C, "Imagine Helping" = posterior_coh_combine$b_Coherence_C + posterior_coh_combine$`b_ConditionImagine:Coherence_C`)
-plot_coh3<- coh_posterior3 %>% gather("Estimate Helping", "Imagine Helping", key= Condition, value= Posterior)
-violin_coh3<- violin_bayes(plot_coh3, rope=c(-0.1, 0.1))[[1]]
-violin_coh3+
-  labs(x="Simulation Condition", y = expression (beta))+
-  stat_boxplot(geom = "errorbar", width = 0.1, coef=0.7)+
-  theme(legend.position='none') +
-  ylim(-0.2, 1.5)
-
-# Summary
-(posterior_summary(coh_posterior3, probs=  c(0.055, 0.945)))
-# pd 
-p_direction(coh_posterior3)
-# % in ROPE
-rope(coh_posterior3,ci=1, range = c(-0.10, 0.10))
-#-------------------------------------------------------------------------------------------------------------------------------------------------------
 # Violin plots -- Detail and Coherence interaction effects
 plot_int3<- cbind.data.frame("Detail" = posterior_det_combine$`b_ConditionImagine:Detail_C`, "Coherence" = posterior_coh_combine$`b_ConditionImagine:Coherence_C`)
 plot_int3<- plot_int3 %>% gather("Detail", "Coherence", key= Condition, value= Posterior)
