@@ -68,9 +68,7 @@ summary(readRDS("Vdiff_help.rds"))
 
 ### Replication of PSE
 ```{r}
-# Parsimonious model: 
-
-PSE_exp1<-lmer(help.response~Condition+(dummy_img+dummy_est|Participant)+(1|Story_ID), data= Exp1.df)
+# Parsimonious model: lmer(help.response~Condition+(dummy_img+dummy_est|Participant)+(1|Story_ID), data= Exp1.df)
 # Summary
 summary(PSE_exp1<-readRDS("PSE_exp1.rds"))
 # F-test with Kenward-Roger approximation of degress of freedom
@@ -78,9 +76,6 @@ anova(PSE_exp1, test='kenward-roger')
 # Effect Size
 r.squaredGLMM(PSE_exp1)
 # Post hoc comparisons
-(posthoc_exp1<- emmeans(PSE_exp1, pairwise~Condition, adjust= 'bonferroni'))
-
-saveRDS(posthoc_exp1, "posthoc_exp1.rds")
 (posthoc_exp1<-readRDS("posthoc_exp1.rds"))
 confint (posthoc_exp1)
 ```
@@ -99,7 +94,7 @@ bar_plot(means_exp1) +
 # Summary
 summary(int_det_exp1<-readRDS("int_det_exp1.rds"))
 confint(int_det_exp1, c("ConditionImagine", "Detail_C", "ConditionImagine:Detail_C"))
-# F-test with Kenward-Roger approximation of degress of freedom
+# F-test using Kenward-Roger approximation of degress of freedom
 anova(int_det_exp1, test='kenward-roger')
 # Effect Size
 r.squaredGLMM(int_det_exp1)
@@ -108,7 +103,7 @@ r.squaredGLMM(int_det_exp1)
 # Summary
 summary(int_coh_exp1<-readRDS("int_coh_exp1.rds"))
 confint(int_coh_exp1, c("ConditionImagine", "Coherence_C", "ConditionImagine:Coherence_C"))
-# F-test with Kenward-Roger approximation of degress of freedom
+# F-test using Kenward-Roger approximation of degress of freedom
 anova(int_coh_exp1, test='kenward-roger')
 # Effect Size
 r.squaredGLMM(int_coh_exp1)
@@ -286,11 +281,11 @@ rope(det_posterior1,ci=1, range = c(-0.10, 0.10))
 coh_posterior1<- cbind.data.frame('Estimate Helping' = posterior_coh_exp1$b_Coherence_C, "Imagine Helping" = posterior_coh_exp1$b_Coherence_C + posterior_coh_exp1$`b_ConditionImagine:Coherence_C`)
 plot_coh1<- coh_posterior1 %>% gather("Estimate Helping", "Imagine Helping", key= Condition, value= Posterior)
 violin_coh1<- violin_bayes(plot_coh1, rope=c(-0.1, 0.1))[[1]]
-violin_coh1+
-  labs(x="Simulation Condition", y = expression (beta))+
-  stat_boxplot(geom = "errorbar", width = 0.1, coef=0.7)+
-  theme(legend.position='none')+
-  scale_x_discrete(labels=c( "Estimate Helping", "Imagine Helping"))+
+violin_coh1 +
+  labs(x="Simulation Condition", y = expression (beta)) +
+  stat_boxplot(geom = "errorbar", width = 0.1, coef=0.7) +
+  theme(legend.position='none') +
+  scale_x_discrete(labels=c("Estimate Helping", "Imagine Helping")) +
   ylim(-0.2, 1.5)
 
 # Summary
@@ -373,11 +368,8 @@ readRDS("VE2.rds")
 
 ### Replication of PSE
 ```{r}
-# Parsimonious model: 
+# Parsimonious model: lmer(help.response~Condition+Gender_C*Face_gender_C+(dummy_img|participant)+(1|Story_ID), data= Exp2.df)
 
-
-PSE_exp2<-lmer(help.response~Condition+Gender_C*Face_gender_C+(dummy_img|participant)+(1|Story_ID), data= Exp2.df)
-PSE_exp2<-refit_LMM(PSE_exp2)
 # Summary
 summary(PSE_exp2<-readRDS("PSE_exp2.rds"))
 # F-test with Kenward-Roger approximation of degress of freedom
@@ -385,14 +377,7 @@ anova(PSE_exp2, test='kenward-roger')
 # Effect Size
 r.squaredGLMM(PSE_exp2)
 # Post hoc comparisons
-(posthoc_exp2<- emmeans(PSE_exp2, pairwise~Condition, adjust= 'bonferroni'))
-confint (posthoc_exp2)
-
-
-
-saveRDS(posthoc_exp2, "posthoc_exp2.rds")
 (posthoc_exp2<-readRDS("posthoc_exp2.rds"))
-
 confint (posthoc_exp2)
 ```
 
@@ -400,6 +385,23 @@ confint (posthoc_exp2)
 ```{r}
 means_exp2<- data.frame(posthoc_exp2$emmeans)
 colnames(means_exp2)[1]<- "Conditions"
+
+
+library(psych)
+g<- aggregate(Exp2.df$help.response, by=list(Exp2.df$participant,Exp2.df$Condition), FUN=mean)    
+colnames (g)<- c("Participants", "Condition", "Help")
+
+se(g$Help[g$Condition=="Imagine"])
+
+ggplot(g, aes(x=Condition, y=Help))+
+                      geom_boxplot(width=0.1, fill="white")
+ggplot(g, aes(x=Condition, y=Help, fill=Condition))+
+                      geom_violin(trim=FALSE) +
+                      geom_boxplot(width=0.1, fill="white") +
+                      theme_classic()
+saveRDS(test, "test.rds")
+h<-readRDS("test.rds")
+h
 bar_plot(means_exp2) +
   scale_x_discrete(labels=c("Identify Media Source", "Estimate Helping", "Imagine Helping")) +
   xlab ("Simulation Condition")
@@ -513,7 +515,6 @@ plot(PSE_plot_exp2)[[1]] +
 #              prior(exponential(1), class= sd),
 #              prior(lkj(1), class = cor)),
 #     iter=7000, warmup=2000, chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
-saveRDS(Bayes_det_exp2, "Bayes_det_exp2.rds")
 
 Bayes_det_exp2<- readRDS("Bayes_det_exp2.rds")
 # Diagnostic Checks: pp check and traceplots
@@ -722,7 +723,6 @@ rope(BF01_coh_3way$samples,ci=1, range = c(-0.1, 0.1))
 #              prior(exponential(1), class= sd),
 #              prior(lkj(1), class = cor)),
 #     iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
-saveRDS(Bayes_det_combine, "Bayes_det_combine.rds")
 
 Bayes_det_combine<- readRDS("Bayes_det_combine.rds")
 # Diagnostic Checks: pp check and traceplots
