@@ -72,7 +72,7 @@ summary(readRDS("Vdiff_help.rds"))
 # Summary
 summary(PSE_exp1<-readRDS("PSE_exp1.rds"))
 # F-test with Kenward-Roger approximation of degress of freedom
-anova(PSE_exp1, test='kenward-roger')
+anova(PSE_exp1, ddf='Kenward-Roger')
 # Effect Size
 r.squaredGLMM(PSE_exp1)
 # Post hoc comparisons
@@ -95,7 +95,7 @@ bar_plot(means_exp1) +
 summary(int_det_exp1<-readRDS("int_det_exp1.rds"))
 confint(int_det_exp1, c("ConditionImagine", "Detail_C", "ConditionImagine:Detail_C"))
 # F-test using Kenward-Roger approximation of degress of freedom
-anova(int_det_exp1, test='kenward-roger')
+anova(int_det_exp1, ddf='Kenward-Roger')
 # Effect Size
 r.squaredGLMM(int_det_exp1)
 #------------------------------------------------------------------------------------------------------------------------
@@ -104,7 +104,7 @@ r.squaredGLMM(int_det_exp1)
 summary(int_coh_exp1<-readRDS("int_coh_exp1.rds"))
 confint(int_coh_exp1, c("ConditionImagine", "Coherence_C", "ConditionImagine:Coherence_C"))
 # F-test using Kenward-Roger approximation of degress of freedom
-anova(int_coh_exp1, test='kenward-roger')
+anova(int_coh_exp1, ddf='Kenward-Roger');summary(int_coh_exp1)
 # Effect Size
 r.squaredGLMM(int_coh_exp1)
 #------------------------------------------------------------------------------------------------------------------------
@@ -373,7 +373,7 @@ readRDS("VE2.rds")
 # Summary
 summary(PSE_exp2<-readRDS("PSE_exp2.rds"))
 # F-test with Kenward-Roger approximation of degress of freedom
-anova(PSE_exp2, test='kenward-roger')
+anova(PSE_exp2, ddf='Kenward-Roger')
 # Effect Size
 r.squaredGLMM(PSE_exp2)
 # Post hoc comparisons
@@ -414,7 +414,7 @@ bar_plot(means_exp2) +
 summary(int_det_exp2<-readRDS("int_det_exp2.rds"))
 confint(int_det_exp2, c("ConditionImagine", "Detail_C", "ConditionImagine:Detail_C"))
 # F-test with Kenward-Roger approximation of degress of freedom
-anova(int_det_exp2, test='kenward-roger')
+anova(int_det_exp2,  ddf='Kenward-Roger')
 # Effect Size
 r.squaredGLMM(int_det_exp2)
 #---------------------------------------------------------------------------------------------------------------------------
@@ -423,7 +423,7 @@ r.squaredGLMM(int_det_exp2)
 summary(int_coh_exp2<-readRDS("int_coh_exp2.rds"))
 confint(int_coh_exp2, c("ConditionImagine", "Coherence_C", "ConditionImagine:Coherence_C"))
 # F-test with Kenward-Roger approximation of degress of freedom
-anova(int_coh_exp2, test='kenward-roger')
+anova(int_coh_exp2,  ddf='Kenward-Roger')
 # Effect Size
 r.squaredGLMM(int_coh_exp2)
 #-------------------------------------------------------------------------------------------------------------------------------
