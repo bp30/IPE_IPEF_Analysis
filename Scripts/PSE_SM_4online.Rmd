@@ -69,8 +69,7 @@ summary(readRDS("Vdiff_help.rds"))
 ### Replication of PSE
 ```{r}
 # Parsimonious model: lmer(help.response~Condition+(dummy_img+dummy_est|Participant)+(1|Story_ID), data= Exp1.df)
-# Summary
-summary(PSE_exp1<-readRDS("PSE_exp1.rds"))
+PSE_exp1<-readRDS("PSE_exp1.rds")
 # F-test with Kenward-Roger approximation of degress of freedom
 anova(PSE_exp1, ddf='Kenward-Roger')
 # Effect Size
@@ -91,8 +90,7 @@ bar_plot(means_exp1) +
 ### Vividness measure by simulation condition interactions
 ```{r}
 # Detail--Parsimonious model: lmer (help.response~Condition*Detail_C+(dummy_img+dummy_img:Detail_C|Participant)+(Detail_C|Story_ID),data= Exp1_int)
-# Summary
-summary(int_det_exp1<-readRDS("int_det_exp1.rds"))
+int_det_exp1<-readRDS("int_det_exp1.rds")
 confint(int_det_exp1, c("ConditionImagine", "Detail_C", "ConditionImagine:Detail_C"))
 # F-test using Kenward-Roger approximation of degress of freedom
 anova(int_det_exp1, ddf='Kenward-Roger')
@@ -100,8 +98,7 @@ anova(int_det_exp1, ddf='Kenward-Roger')
 r.squaredGLMM(int_det_exp1)
 #------------------------------------------------------------------------------------------------------------------------
 # Coherence--Parsimonious model:lmer (help.response~Condition*Coherence_C+(dummy_img|Participant)+(Coherence_C|Story_ID),data= Exp1_int)
-# Summary
-summary(int_coh_exp1<-readRDS("int_coh_exp1.rds"))
+int_coh_exp1<-readRDS("int_coh_exp1.rds")
 confint(int_coh_exp1, c("ConditionImagine", "Coherence_C", "ConditionImagine:Coherence_C"))
 # F-test using Kenward-Roger approximation of degress of freedom
 anova(int_coh_exp1, ddf='Kenward-Roger');summary(int_coh_exp1)
@@ -369,9 +366,7 @@ readRDS("VE2.rds")
 ### Replication of PSE
 ```{r}
 # Parsimonious model: lmer(help.response~Condition+Gender_C*Face_gender_C+(dummy_img|participant)+(1|Story_ID), data= Exp2.df)
-
-# Summary
-summary(PSE_exp2<-readRDS("PSE_exp2.rds"))
+PSE_exp2<-readRDS("PSE_exp2.rds")
 # F-test with Kenward-Roger approximation of degress of freedom
 anova(PSE_exp2, ddf='Kenward-Roger')
 # Effect Size
@@ -385,7 +380,6 @@ confint (posthoc_exp2)
 ```{r}
 means_exp2<- data.frame(posthoc_exp2$emmeans)
 colnames(means_exp2)[1]<- "Conditions"
-
 
 library(psych)
 g<- aggregate(Exp2.df$help.response, by=list(Exp2.df$participant,Exp2.df$Condition), FUN=mean)    
@@ -410,8 +404,7 @@ bar_plot(means_exp2) +
 ### Vividness measure by simulation condition interactions
 ```{r}
 # Detail--Parsimonious model: lmer (help.response~Condition*Detail_C+Gender_C*Face_gender_C+(dummy_img+Detail_C|participant)+(1|Story_ID),data= Exp2_int)
-# Summary
-summary(int_det_exp2<-readRDS("int_det_exp2.rds"))
+int_det_exp2<-readRDS("int_det_exp2.rds")
 confint(int_det_exp2, c("ConditionImagine", "Detail_C", "ConditionImagine:Detail_C"))
 # F-test with Kenward-Roger approximation of degress of freedom
 anova(int_det_exp2,  ddf='Kenward-Roger')
@@ -419,8 +412,7 @@ anova(int_det_exp2,  ddf='Kenward-Roger')
 r.squaredGLMM(int_det_exp2)
 #---------------------------------------------------------------------------------------------------------------------------
 # Coherence--Parsimonious model: lmer (help.response~Condition*Coherence_C+Gender_C*Face_gender_C+(dummy_img+Coherence_C|participant)+(1|Story_ID),data= Exp2_int)
-# Summary
-summary(int_coh_exp2<-readRDS("int_coh_exp2.rds"))
+int_coh_exp2<-readRDS("int_coh_exp2.rds")
 confint(int_coh_exp2, c("ConditionImagine", "Coherence_C", "ConditionImagine:Coherence_C"))
 # F-test with Kenward-Roger approximation of degress of freedom
 anova(int_coh_exp2,  ddf='Kenward-Roger')
@@ -640,7 +632,7 @@ plot(cohplot2)[[3]]+
 
 
 
-## Bayesian CLMMs on combined datasets of both experiments
+## Bayesian CLMMs: Combined dataset
 ### Data set up 
 ```{r}
 exp1<- Exp1_int%>% select("Participant", "Story_ID", "Condition", "help.response", "Detail_C", "Coherence_C")
