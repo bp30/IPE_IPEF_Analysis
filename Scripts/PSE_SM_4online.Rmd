@@ -128,6 +128,80 @@ ggpredict(int_coh_exp1, c("Coherence_C[-4,0,4]","Condition"))%>% plot() +
   scale_fill_discrete(labels = c("Estimate Helping", "Imagine Helping"))
 ```
 ## Bayesian CLMMs
+### Assess differences between versions
+```{r}
+# Detail-- model: 
+# Vdiff_det_bayes<- brm(data= Exp1_int, family=cumulative("logit"), 
+#                   Detail.response~Version+(1|Participant)+(1|Story_ID), 
+#                   prior= c(prior(normal (0,1), class=b), 
+#                            prior(normal(0,1.2), class=Intercept),
+#                            prior(exponential(1), class= sd)),
+#                   iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
+
+Vdiff_det_bayes<-readRDS("Vdiff_det_bayes.rds")
+# Summary 
+summary(Vdiff_det_bayes, prob=0.89)
+# BF01
+(BF01_detV<-hypothesis(Vdiff_det_bayes, hypothesis =c("Version2=0"),alpha=0.055, seed=67));plot(BF01_detV)
+# pd
+colMeans(BF01_detV$samples<0/4e4)
+# % in ROPE
+rope(BF01_detV$samples,ci=1, range = c(-0.1, 0.1))
+#------------------------------------------------------------------------------------------------------------------------
+# Coherence-- model: 
+# Vdiff_coh_bayes<- brm(data= Exp1_int, family=cumulative("logit"), 
+#                  bf(Coherence.response~Version+(1|Participant)+(Version|Story_ID))+
+#                       lf(disc ~ 0+Version, cmc=F), 
+#                  prior= c(prior(normal (0,1), class=b), 
+#                           prior(normal(0,1.2), class=Intercept),
+#                           prior(exponential(1), class= sd),
+#                           prior(lkj(1), class = cor)),
+#                  iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
+
+Vdiff_coh_bayes<-readRDS("Vdiff_coh_bayes.rds")
+# Summary 
+summary(Vdiff_coh_bayes, prob=0.89)
+# BF01
+(BF01_cohV<-hypothesis(Vdiff_coh_bayes, hypothesis =c("Version2=0"),alpha=0.055, seed=67));plot(BF01_cohV)
+# pd
+colMeans(BF01_cohV$samples<0/4e4)
+# % in ROPE
+rope(BF01_cohV$samples,ci=1, range = c(-0.1, 0.1))
+#------------------------------------------------------------------------------------------------------------------------
+# Help -- model: 
+# Vdiff_help_bayes<- brm(data= Exp1.df, family=cumulative("logit"), 
+#                  bf(help.response~Version+(1|Participant)+(Version|Story_ID))+
+#                     lf(disc ~ 0+Version, cmc=F), 
+#                  prior= c(prior (normal(0,1), class=b), 
+#                           prior(normal(0,1.2), class=Intercept),
+#                           prior(exponential(1), class= sd),
+#                           prior(lkj(1), class = cor)), 
+#                  iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
+
+Vdiff_help_bayes<-readRDS("Vdiff_help_bayes.rds")
+# Summary 
+summary(Vdiff_help_bayes, prob=0.89)
+# BF01
+(BF01_helpV<-hypothesis(Vdiff_help_bayes, hypothesis =c("Version2=0"),alpha=0.055, seed=67));plot(BF01_helpV)
+# pd
+colMeans(BF01_helpV$samples>0/4e4)
+# % in ROPE
+rope(BF01_helpV$samples,ci=1, range = c(-0.1, 0.1))
+```
+### Plot
+```{r}
+# Violin plots
+Vdiff_plot<- cbind.data.frame(BF01_detV$samples, BF01_cohV$samples,BF01_helpV$samples)
+colnames(Vdiff_plot)<- c("Detail", "Coherence", "Willlingness to help")
+Vdiff_plot<- Vdiff_plot %>% gather("Detail", "Coherence", "Willlingness to help", key= Condition, value= Posterior)
+violin_Vdiff<- violin_bayes(Vdiff_plot)[[1]]
+violin_Vdiff +
+  labs(x="Measures", y = "Version difference")+
+  stat_boxplot(geom = "errorbar", width = 0.1, coef=0.7) +
+  theme(legend.position = "none") 
+```
+
+
 ### Replication of PSE
 ```{r}
 # Model:
@@ -155,7 +229,7 @@ summary(Bayes_Help_exp1, prob=0.89)
 # Evidence Ratios (not reported)
 (ER_help1<-hypothesis(Bayes_Help_exp1, hypothesis =c("ConditionImagine>0", "ConditionImagine - ConditionEstimate>0"),alpha=0.055, seed=67))
 # pd
-colMeans(ER_help1$samples>0/4e4)
+colMeans(ER_help1$samples>0)
 # % in ROPE
 rope(ER_help1$samples,ci=1, range = c(-0.1, 0.1))
 
@@ -173,10 +247,9 @@ colnames(PSE_plots1)<- c("Identify", "Estimate")
 PSE_plots1<- PSE_plots1 %>% gather("Identify", "Estimate", key= Condition, value= Posterior)
 violin_PSE1<- violin_bayes(PSE_plots1, rope=c(-0.1, 0.1))[[1]]
 violin_PSE1+
-  labs(x="Contrasts", y = expression(beta))+
+  labs(x="Simulation Condition Contrasts", y = expression(beta))+
   stat_boxplot(geom = "errorbar", width = 0.1, coef=0.7) +
-  theme(legend.position = "none")+
-  xlab("Simulation Condition Contrasts")+
+  theme(legend.position = "none") +
   scale_x_discrete(labels=c( "Imagine Helping - Estimate Helping", "Imagine Helping - Identify Media Source"))
 #-----------------------------------------------------------------------------------------------------------------------
 # Predicted probability in each response category
@@ -224,6 +297,17 @@ rope(Bayes_det_exp1,ci=1, range = c(-0.10, 0.10), parameters = c("b_Detail_C", "
 set.seed(67);posterior_det_exp1<- posterior_samples(Bayes_det_exp1)
 # Latent SD of simulation conditions
 latent_SD(posterior_det_exp1)
+
+
+Det_OR1<- as.data.frame(exp(posterior_det_exp1$`b_ConditionImagine:Detail_C`))
+colnames(Det_OR1)<- "Int"
+ggplot(Det_OR1, aes(x=1, y=Int))+
+                      geom_violin(trim=FALSE)+
+                      geom_boxplot(width=0.1, fill="white") + 
+   geom_hline(yintercept=1, linetype="dashed", color = "red", size=0.5)
+
+mean(Det_OR1$Int>1)
+-
 #------------------------------------------------------------------------------------------------------------------------
 # Coherence -- Model: 
 #brm(data= Exp1_int, family=cumulative("logit"), 
@@ -268,7 +352,7 @@ violin_det1 +
   ylim(-0.2, 1.5)
 
 # Summary
-violin_bayes(plot_det1,CI_range =  c(0.055, 0.945))[[2]]
+violin_bayes(plot_det1, CI_range = c(0.055, 0.945))[[2]]
 # pd 
 p_direction(det_posterior1)
 # % in ROPE
@@ -443,109 +527,6 @@ ggpredict(int_coh_exp2, c("Coherence_C[-4,0,4]","Condition"))%>% plot() +
 
 
 ## Bayes CLMMs
-### Assess differences between versions
-```{r}
-# Detail-- model: 
-Vdiff_det_bayes<- brm(data= Exp1_int, family=cumulative("logit"), 
-                  Detail.response~Version+(1|Participant)+(1|Story_ID), 
-                  prior= c(prior(normal (0,1), class=b), 
-                           prior(normal(0,1.2), class=Intercept),
-                           prior(exponential(1), class= sd)),
-                  iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
-
-Vdiff_coh_bayes<- brm(data= Exp1_int, family=cumulative("logit"), 
-                  Coherence.response~Version+(1|Participant)+(1|Story_ID), 
-                  prior= c(prior(normal (0,1), class=b), 
-                           prior(normal(0,1.2), class=Intercept),
-                           prior(exponential(1), class= sd)),
-                  iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
-
-Vdiff_help_bayes<- brm(data= Exp1.df, family=cumulative("logit"), 
-                  help.response~Version+(1|Participant)+(1|Story_ID), 
-                  prior= c(prior (normal(0,1), class=b), 
-                           prior(normal(0,1.2), class=Intercept),
-                           prior(exponential(1), class= sd)), 
-                  iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
-
-
-Vdiff_det_null<- brm(data= Exp1_int, family=cumulative("logit"), 
-                  Detail.response~(1|Participant)+(1|Story_ID), 
-                  prior= c(prior(normal(0,1.2), class=Intercept),
-                           prior(exponential(1), class= sd)),
-                  iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
-Vdiff_coh_null<- brm(data= Exp1_int, family=cumulative("logit"), 
-                  Coherence.response~(1|Participant)+(1|Story_ID), 
-                  prior= c(prior(normal(0,1.2), class=Intercept),
-                           prior(exponential(1), class= sd)),
-                  iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
-Vdiff_help_null<- brm(data= Exp1_int, family=cumulative("logit"), 
-                  help.response~(1|Participant)+(1|Story_ID), 
-                  prior= c(prior(normal(0,1.2), class=Intercept),
-                           prior(exponential(1), class= sd)),
-                  iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
-
-set.seed(67);BFdet_null<-bayes_factor(Vdiff_det_bayes,Vdiff_det_null)
-BFdet_null;1/BFdet_null$bf
-set.seed(67);BFcoh_null<-bayes_factor(Vdiff_coh_bayes, Vdiff_coh_null)
-BFcoh_null; 1/BFcoh_null$bf
-set.seed(67);BFhelp_null<-bayes_factor(Vdiff_help_bayes,Vdiff_help_null)
-BFhelp_null;1/BFhelp_null$bf
-
-saveRDS(Vdiff_det_bayes, "Vdiff_det_bayes.rds")
-
-Vdiff_det_bayes<-readRDS("Vdiff_det_bayes.rds")
-# Summary 
-summary(Vdiff_det_bayes, prob=0.89)
-# BF01
-(BF01_detV<-hypothesis(Vdiff_det_bayes, hypothesis =c("Version2=0"),alpha=0.055, seed=67));plot(BF01_detV)
-# pd
-colMeans(BF01_detV$samples<0/4e4)
-# % in ROPE
-rope(BF01_detV$samples,ci=1, range = c(-0.1, 0.1))
-#------------------------------------------------------------------------------------------------------------------------
-# Coherence-- model: 
-Vdiff_coh_bayes<- brm(data= Exp1_int, family=cumulative("logit"), 
-                  bf(Coherence.response~Version+(1|Participant)+(Version|Story_ID))+
-                       lf(disc ~ 0+Version, cmc=F), 
-                  prior= c(prior(normal (0,1), class=b), 
-                           prior(normal(0,1.2), class=Intercept),
-                           prior(exponential(1), class= sd),
-                           prior(lkj(1), class = cor)),
-                  iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
-saveRDS(Vdiff_coh_bayes, "Vdiff_coh_bayes.rds")
-
-Vdiff_coh_bayes<-readRDS("Vdiff_coh_bayes.rds")
-# Summary 
-summary(Vdiff_coh_bayes, prob=0.89)
-# BF01
-(BF01_cohV<-hypothesis(Vdiff_coh_bayes, hypothesis =c("Version2=0"),alpha=0.055, seed=67));plot(BF01_cohV)
-# pd
-colMeans(BF01_cohV$samples<0/4e4)
-# % in ROPE
-rope(BF01_cohV$samples,ci=1, range = c(-0.1, 0.1))
-#------------------------------------------------------------------------------------------------------------------------
-# Help -- model: 
-Vdiff_help_bayes<- brm(data= Exp1.df, family=cumulative("logit"), 
-                  bf(help.response~Version+(1|Participant)+(Version|Story_ID))+
-                   lf(disc ~ 0+Version, cmc=F), 
-                  prior= c(prior (normal(0,1), class=b), 
-                           prior(normal(0,1.2), class=Intercept),
-                           prior(exponential(1), class= sd),
-                           prior(lkj(1), class = cor)), 
-                  iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
-
-saveRDS(Vdiff_help_bayes, "Vdiff_help_bayes.rds")
-
-Vdiff_help_bayes<-readRDS("Vdiff_help_bayes.rds")
-# Summary 
-summary(Vdiff_help_bayes, prob=0.89)
-# BF01
-(BF01_helpV<-hypothesis(Vdiff_help_bayes, hypothesis =c("Version2=0"),alpha=0.055, seed=67));plot(BF01_helpV)
-# pd
-colMeans(BF01_helpV$samples>0/4e4)
-# % in ROPE
-rope(BF01_helpV$samples,ci=1, range = c(-0.1, 0.1))
-```
 
 
 ### Replication of PSE
@@ -572,9 +553,19 @@ summary(Bayes_Help_exp2, prob=0.89)
 # Evidence Ratios (not reported)
 (ER_help2<-hypothesis(Bayes_Help_exp2, hypothesis =c("ConditionImagine>0", "ConditionImagine - ConditionEstimate>0"),alpha=0.055, seed=67))
 # pd
-colMeans(ER_help2$samples>0/4e4)
+colMeans(ER_help2$samples>0)
 # % in ROPE
 rope(ER_help2$samples,ci=1, range = c(-0.1, 0.1))
+
+# OR
+OR2<- exp(ER_help2$samples)
+colnames(OR2)<- c("Imagine-Identify", "Imagine-Estimate")
+OR2.df<- OR2 
+OR2<- OR2 %>% gather("Imagine-Identify", "Imagine-Estimate", key= Condition, value= Posterior)
+OR2_plot<- violin_bayes(OR2)[[1]]
+violin_bayes(OR2, CI_range = c(0.055, 0.945))[[2]]
+
+
 ```
 
 #### Plots
