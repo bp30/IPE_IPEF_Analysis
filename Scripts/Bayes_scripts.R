@@ -58,23 +58,30 @@ latent_SD<- function (posterior){
 }
 #-----------------------------------------------------------------------------------------------------------------------------------------
 # Function to create dataset for violin plot and plot the gg object for violin, also display posterior summary for each posterior
-violin_bayes<- function (plot.df, CI_range, rope){
-  if (missing(CI_range)){
-    CI_range<- c(0.025, 0.975)
+violin_bayes<- function (plot.df, HDI_range, rope){
+  # I typically only use 2 HDI 95% or 89% below is the 89% HDI used for plotting
+  coefficient <- 0.7
+  if (missing(HDI_range)){
+  # Default plot 95% HDI not 89% 
+    HDI_range <- c(0.025, 0.975)
+    coefficient <- 1
   }
-  display_plot<-ggplot(plot.df, aes(x=Condition, y=Posterior, fill= Condition))+
-                      geom_violin(trim=FALSE)+
-                      geom_boxplot(width=0.1, fill="white")+
-                      theme_classic()+
-                      geom_hline(yintercept=0, linetype="dashed", color = "red", size=0.5)
+  display_plot<-ggplot(plot.df, aes(x=Condition, y=Posterior, fill= Condition)) +
+                      geom_violin(trim = FALSE, alpha = 0.6, aes(fill = Condition, color = Condition), size = 1) +
+                      geom_boxplot(width = 0.1, fill = "white", outlier.size = 1, aes(colour = Condition)) +
+                      theme_classic() +
+                      geom_hline(yintercept=0, linetype="dashed", color = "red", size=0.5) +
+                      stat_summary(fun = mean, geom = "point", shape = 19, size = 2, aes(colour = Condition)) +
+                      stat_boxplot(geom = "errorbar", width = 0.05, coef = coefficient, aes(colour = Condition)) +
+                      theme(legend.position = "none")
   if (missing(rope)){
   } else {
     display_plot <- display_plot+geom_hline(yintercept=rope, linetype="dashed", color = "blue", size=0.5)
   }
-  conditions<-length( unique(plot.df$Condition))
+  conditions<-length(unique(plot.df$Condition))
   posteriors<- data.frame()
   for (x in 1:conditions){
-    posterior_sum<- posterior_summary(plot.df$Posterior[plot.df$Condition==unique(plot.df$Condition)[x]], probs=CI_range)
+    posterior_sum<- posterior_summary(plot.df$Posterior[plot.df$Condition==unique(plot.df$Condition)[x]], probs=HDI_range)
     row.names(posterior_sum)<- unique(plot.df$Condition)[x]
     posteriors<- rbind(posteriors, posterior_sum)
   }

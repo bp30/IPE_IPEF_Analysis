@@ -1,11 +1,11 @@
 # Bar graph function
-bar_plot<- function (means){
-  plot<- ggplot(means, aes(x=Conditions, y=emmean ) ) +
-                geom_bar(stat='identity', width=0.5, fill="steelblue") +
+bar_plot<- function (means, palette){
+  plot<- ggplot(means, aes(x=Conditions, y=emmean) ) +
+                geom_bar(stat='identity', width=0.4, fill=c(palette[1], palette[2], palette[3]), alpha=0.6) +
                 theme_minimal() +
                 ylab("Willingness to help") +
                 xlab ("Conditions") +
-                geom_errorbar(aes(ymin=emmean-SE, ymax=emmean+SE), width=.2,position=position_dodge(.9)) +
+                geom_errorbar(aes(ymin=emmean-SE, ymax=emmean+SE), width=.15, position=position_dodge(.9)) +
                 coord_cartesian(ylim = c(1, 7)) + 
                 expand_limits(y = c(1,7)) + 
                 scale_y_discrete(limits=c(1,2,3,4,5,6,7)) +
