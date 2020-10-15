@@ -1,7 +1,7 @@
 # Bar graph function
 bar_plot<- function (means, palette){
   plot<- ggplot(means, aes(x=Conditions, y=emmean) ) +
-                geom_bar(stat='identity', width=0.4, fill=c(palette[1], palette[2], palette[3]), alpha=0.6) +
+                geom_bar(stat='identity', width=0.4, fill=c(palette[1], palette[2], palette[3]), alpha=0.8) +
                 theme_minimal() +
                 ylab("Willingness to help") +
                 xlab ("Conditions") +

@@ -158,8 +158,6 @@ summary(Vdiff_det_bayes, prob=0.89)
 (BF01_detV<-hypothesis(Vdiff_det_bayes, hypothesis =c("Version2=0"),alpha=0.055, seed=67));plot(BF01_detV)
 # pd
 colMeans(BF01_detV$samples<0/4e4)
-# % in ROPE
-rope(BF01_detV$samples,ci=1, range = c(-0.1, 0.1))
 #------------------------------------------------------------------------------------------------------------------------
 # Coherence-- model: 
 # Vdiff_coh_bayes<- brm(data= Exp1_int, family=cumulative("logit"), 
@@ -178,8 +176,6 @@ summary(Vdiff_coh_bayes, prob=0.89)
 (BF01_cohV<-hypothesis(Vdiff_coh_bayes, hypothesis =c("Version2=0"),alpha=0.055, seed=67));plot(BF01_cohV)
 # pd
 colMeans(BF01_cohV$samples<0/4e4)
-# % in ROPE
-rope(BF01_cohV$samples,ci=1, range = c(-0.1, 0.1))
 #------------------------------------------------------------------------------------------------------------------------
 # Help -- model: 
 # Vdiff_help_bayes<- brm(data= Exp1.df, family=cumulative("logit"), 
@@ -195,9 +191,7 @@ Vdiff_help_bayes<-readRDS("Vdiff_help_bayes.rds")
 # Summary 
 summary(Vdiff_help_bayes, prob=0.89)
 # BF01
-(BF01_helpV<-hypothesis(Vdiff_help_bayes, hypothesis =c("Version2=0"),alpha=0.055,colMeans(BF01_helpV$samples>0/4e4)
-# % in ROPE
-rope(BF01_helpV$samples,ci=1, range = c(-0.1, 0.1)) seed=67));plot(BF01_helpV)
+(BF01_helpV<-hypothesis(Vdiff_help_bayes, hypothesis =c("Version2=0"),alpha=0.055)
 # pd
 colMeans(BF01_helpV$samples>0)
 ```
@@ -230,8 +224,6 @@ summary(Bayes_Help_exp1, prob=0.89)
 (ER_help1<-hypothesis(Bayes_Help_exp1, hypothesis =c("ConditionImagine>0", "ConditionImagine - ConditionEstimate>0"),alpha=0.055, seed=67))
 # pd
 colMeans(ER_help1$samples>0)
-# % in ROPE
-rope(ER_help1$samples,ci=1, range = c(-0.1, 0.1))
 # OR
 OR1<- exp(ER_help1$samples)
 colnames(OR1)<- c("Imagine-Identify", "Imagine-Estimate")
@@ -295,8 +287,6 @@ bayes_samples(Bayes_det_exp1)
 summary(Bayes_det_exp1, prob=0.89)
 # pd
 p_direction(Bayes_det_exp1, parameters = c("b_Detail_C", "b_Condition"))
-# % in ROPE
-rope(Bayes_det_exp1,ci=1, range = c(-0.10, 0.10), parameters = c("b_Detail_C", "b_Condition"))
 # OR
 posterior_summary(exp(posterior_det_exp1$`b_ConditionImagine:Detail_C`), probs=c(0.055, 0.945))
 
@@ -326,8 +316,6 @@ bayes_samples(Bayes_coh_exp1)
 summary(Bayes_coh_exp1, prob=0.89)
 # pd
 p_direction(Bayes_coh_exp1, parameters = c("b_Coherence_C", "b_Condition"))
-# % in ROPE
-rope(Bayes_coh_exp1,ci=1, range = c(-0.10, 0.10), parameters = c("b_Coherence_C", "b_Condition"))
 # OR
 posterior_summary(exp(posterior_coh_exp1$`b_ConditionImagine:Coherence_C`), probs=c(0.055, 0.945))
 
@@ -354,8 +342,6 @@ violin_det1 +
 violin_bayes(plot_det1, CI_range = c(0.055, 0.945))[[2]]
 # pd 
 p_direction(det_posterior1)
-# % in ROPE
-rope(det_posterior1,ci=1, range = c(-0.10, 0.10))
 # OR
 posterior_summary(exp(det_posterior1), probs=c(0.055, 0.945))
 #--------------------------------------------------------------------------------------------------------------------------
@@ -374,8 +360,6 @@ violin_coh1 +
 violin_bayes(plot_coh1,CI_range =  c(0.055, 0.945))[[2]]
 # pd 
 p_direction(coh_posterior1)
-# % in ROPE
-rope(coh_posterior1,ci=1, range = c(-0.10, 0.10))
 # OR
 posterior_summary(exp(coh_posterior1), probs=c(0.055, 0.945))
 #--------------------------------------------------------------------------------------------------------------------------
@@ -558,8 +542,6 @@ summary(Bayes_Help_exp2, prob=0.89)
 (ER_help2<-hypothesis(Bayes_Help_exp2, hypothesis =c("ConditionImagine>0", "ConditionImagine - ConditionEstimate>0"),alpha=0.055, seed=67))
 # pd
 colMeans(ER_help2$samples>0)
-# % in ROPE
-rope(ER_help2$samples,ci=1, range = c(-0.1, 0.1))
 # OR
 OR2<- exp(ER_help2$samples)
 colnames(OR2)<- c("Imagine-Identify", "Imagine-Estimate")
@@ -612,8 +594,6 @@ bayes_samples(Bayes_det_exp2)
 summary(Bayes_det_exp2, prob=0.89)
 # pd
 p_direction(Bayes_det_exp2, parameters = c("b_Detail_C", "b_Condition"))
-# % in ROPE
-rope(Bayes_det_exp2,ci=1, range = c(-0.10, 0.10), parameters = c("b_Detail_C", "b_Condition"))
 # OR
 posterior_summary(exp(posterior_det_exp2$`b_ConditionImagine:Detail_C`), probs=c(0.055, 0.945))
 
@@ -643,8 +623,6 @@ bayes_samples(Bayes_coh_exp2)
 summary(Bayes_coh_exp2, prob=0.89)
 # pd
 p_direction(Bayes_coh_exp2, parameters = c("b_Coherence_C", "b_Condition"))
-# % in ROPE
-rope(Bayes_coh_exp2,ci=1, range = c(-0.10, 0.10), parameters = c("b_Coherence_C", "b_Condition"))
 # OR
 posterior_summary(exp(posterior_coh_exp2$`b_ConditionImagine:Coherence_C`), probs=c(0.055, 0.945))
 
@@ -672,8 +650,6 @@ violin_det2 +
 violin_bayes(plot_det2,CI_range =  c(0.055, 0.945))[[2]]
 # pd 
 p_direction(det_posterior2 )
-# % in ROPE
-rope(det_posterior2,ci=1, range = c(-0.10, 0.10))
 # OR
 posterior_summary(exp(det_posterior2), probs=c(0.055, 0.945))
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -694,8 +670,6 @@ violin_coh2+
 violin_bayes(plot_coh2,CI_range =  c(0.055, 0.945))[[2]]
 # pd 
 p_direction(coh_posterior2)
-# % in ROPE
-rope(coh_posterior2,ci=1, range = c(-0.10, 0.10))
 # OR
 posterior_summary(exp(coh_posterior2), probs=c(0.055, 0.945))
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -784,8 +758,6 @@ summary(Bayes_det_3way, prob=0.89)
 (BF01_det_3way<-hypothesis(Bayes_det_3way, hypothesis ="ConditionImagine:Detail_C:Experiment2 =0", seed=67, alpha=0.055)); plot(BF01_det_3way)
 # pd
 colMeans(BF01_det_3way$samples>0/4e4)
-# % in ROPE
-rope(BF01_det_3way$samples,ci=1, range = c(-0.1, 0.1))
 #--------------------------------------------------------------------------------------------------------------------------------------------------------
 # Coherence--Model:
 # brm(data= combined.df, family=cumulative("logit"), 
@@ -810,8 +782,6 @@ summary(Bayes_coh_3way, prob=0.89)
 (BF01_coh_3way<-hypothesis(Bayes_coh_3way, hypothesis ="ConditionImagine:Coherence_C:Experiment2 =0", seed=67, alpha=0.055));plot(BF01_det_3way)
 # pd
 colMeans(BF01_coh_3way$samples>0/4e4)
-# % in ROPE
-rope(BF01_coh_3way$samples,ci=1, range = c(-0.1, 0.1))
 ```
 
 
@@ -839,8 +809,6 @@ bayes_samples(Bayes_det_combine)
 summary(Bayes_det_combine, prob=0.89)
 # pd
 p_direction(Bayes_det_combine, parameters = c("b_Detail_C", "b_Condition"))
-# % in ROPE
-rope(Bayes_det_combine,ci=1, range = c(-0.10, 0.10), parameters = c("b_Detail_C", "b_Condition"))
 # OR
 posterior_summary(exp(posterior_det_combine$`b_ConditionImagine:Detail_C`), probs=c(0.055, 0.945))
 
@@ -870,8 +838,6 @@ bayes_samples(Bayes_coh_combine)
 summary(Bayes_coh_combine, prob=0.89)
 # pd
 p_direction(Bayes_coh_combine, parameters = c("b_Coherence_C", "b_Condition"))
-# % in ROPE
-rope(Bayes_coh_combine,ci=1, range = c(-0.10, 0.10), parameters = c("b_Coherence_C", "b_Condition"))
 # OR
 posterior_summary(exp(posterior_coh_combine$`b_ConditionImagine:Coherence_C`), probs=c(0.055, 0.945))
 
