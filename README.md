@@ -4,4 +4,4 @@ PSE_SM_4online.rmd contains scripts for analyses in the 'insert paper title' (re
 All rds file for the models are located on OSF: (provide link). 
 
 CONTACT:
-if you have questions, ideas, or suggestions. Please contact me at dpen466@aucklanduni.ac.nz. All contributor to the analysis are included in the paper.
+If you have questions, ideas, or suggestions. Please contact me at dpen466@aucklanduni.ac.nz. All contributor to the analysis are included in the paper.
