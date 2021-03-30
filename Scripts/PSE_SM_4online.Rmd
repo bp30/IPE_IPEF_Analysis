@@ -357,7 +357,7 @@ violin_det1 +
   scale_color_manual(values = c(palette[2], palette[3]))
 
 # Summary
-violin_bayes(plot_det1, CI_range = c(0.055, 0.945))[[2]]
+violin_bayes(plot_det1, HDI_range = c(0.055, 0.945))[[2]]
 # pd 
 p_direction(det_posterior1)
 # OR
@@ -628,11 +628,12 @@ bayes_samples(Bayes_det_exp2)
 summary(Bayes_det_exp2, prob=0.89)
 # pd
 p_direction(Bayes_det_exp2, parameters = c("b_Detail_C", "b_Condition"))
+# Extract posterior samples 
+set.seed(67);posterior_det_exp2<- posterior_samples(Bayes_det_exp2)
 # OR
 posterior_summary(exp(posterior_det_exp2$`b_ConditionImagine:Detail_C`), probs=c(0.055, 0.945))
 
-# Extract posterior samples 
-set.seed(67);posterior_det_exp2<- posterior_samples(Bayes_det_exp2)
+
 # Latent SD of simulation conditions
 latent_SD(posterior_det_exp2)
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -657,11 +658,10 @@ bayes_samples(Bayes_coh_exp2)
 summary(Bayes_coh_exp2, prob=0.89)
 # pd
 p_direction(Bayes_coh_exp2, parameters = c("b_Coherence_C", "b_Condition"))
-# OR
-posterior_summary(exp(posterior_coh_exp2$`b_ConditionImagine:Coherence_C`), probs=c(0.055, 0.945))
-
 # Extract posterior samples 
 set.seed(67);posterior_coh_exp2<- posterior_samples(Bayes_coh_exp2)
+# OR
+posterior_summary(exp(posterior_coh_exp2$`b_ConditionImagine:Coherence_C`), probs=c(0.055, 0.945))
 # Latent SD of simulation conditions
 latent_SD(posterior_coh_exp2)
 ```
@@ -680,7 +680,7 @@ violin_det2 +
   scale_color_manual(values = c(palette[2], palette[3]))
 
 # Summary
-violin_bayes(plot_det2,CI_range =  c(0.055, 0.945))[[2]]
+violin_bayes(plot_det2, HDI_range =  c(0.055, 0.945))[[2]]
 # pd 
 p_direction(det_posterior2 )
 # OR
@@ -699,7 +699,7 @@ violin_coh2+
   scale_color_manual(values = c(palette[2], palette[3]))
 
 # Summary
-violin_bayes(plot_coh2,CI_range =  c(0.055, 0.945))[[2]]
+violin_bayes(plot_coh2, HDI_range =  c(0.055, 0.945))[[2]]
 # pd 
 p_direction(coh_posterior2)
 # OR
