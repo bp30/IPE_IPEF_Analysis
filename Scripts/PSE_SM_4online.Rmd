@@ -6,11 +6,24 @@ date: "Oct 2020"
 output: html_document
 ---
 
+# Session Setup
+```{r}
+library(checkpoint)
+checkpoint(
+  snapshotDate = "2020-10-01"
+  , R.version = "3.6.2" # replaced with your version of R
+  , checkpointLocation = "." # replaced with your own directory
+)
+
+rm(list = ls()); gc()
+```
+
+
 # Package and directory set up
 ```{r setup, include=FALSE}
 # Load packages
 if (!require(pacman)) install.packages('pacman')
-pacman::p_load(sjstats,sjPlot,lme4,ordinal,lmerTest,emmeans,ggeffects,tidyverse,MuMIn,brms,bayestestR)
+pacman::p_load(sjstats, sjPlot, lme4, ordinal,lmerTest, emmeans, ggeffects, tidyverse, MuMIn, brms, bayestestR)
 
 # Source custom functions
 source("LMM_scripts.R")
@@ -24,82 +37,80 @@ palette <- c("#eeaa7b", "#00b159", "#00aedb", "#F8766D", "#9590FF", "#CC9933", "
 ## Data 
 * Data loading and setup
 ```{r}
-Exp1.df<- read.csv('../../Experiment1_N=40.csv', header=T)
+Exp1.df <- read.csv('../../Experiment1_N=40.csv', header=T)
 
 # Remove deleted trials from data frame
-Exp1.df<- Exp1.df[complete.cases(Exp1.df$Condition),]
+Exp1.df <- Exp1.df[complete.cases(Exp1.df$Condition), ]
 
 # Convert Story_ID and Condition vectors into factors and ensure Identify condition is set as the reference group
-Exp1.df$Story_ID<- as.factor(Exp1.df$Story_ID)
-Exp1.df$Condition<- as.factor(Exp1.df$Condition)
-Exp1.df$Version<- as.factor(Exp1.df$Version)
-Exp1.df$Condition<- relevel(Exp1.df$Condition,ref='Identify')
+Exp1.df$Story_ID <- as.factor(Exp1.df$Story_ID)
+Exp1.df$Condition <- as.factor(Exp1.df$Condition)
+Exp1.df$Version <- as.factor(Exp1.df$Version)
+Exp1.df$Condition <- relevel(Exp1.df$Condition, ref = 'Identify')
 
 # Data transformations 
 Exp1.df<- Exp1.df %>% 
               mutate(
                 # Create dummy variables
-                dummy_img= as.numeric(Condition=='Imagine'),
-                dummy_est= as.numeric(Condition=='Estimate'),
-                dummy_ident= as.numeric(Condition=='Identify'),
+                dummy_img = as.numeric(Condition == 'Imagine'),
+                dummy_est = as.numeric(Condition == 'Estimate'),
+                dummy_ident = as.numeric(Condition == 'Identify'),
                 # Within-cluster centering
-                Coherence_C=group_center(Coherence.response,Participant),
-                Detail_C=group_center(Detail.response,Participant))
+                Coherence_C = group_center(Coherence.response, Participant),
+                Detail_C = group_center(Detail.response, Participant))
 
 # Create a new data file that only include estimate helping and imagine helping conditions for interation analyses
-Exp1_int<- Exp1.df%>%filter(Condition!='Identify')
-Exp1_int$Condition<- droplevels(Exp1_int$Condition)
+Exp1_int <- Exp1.df %>% filter(Condition != 'Identify')
+Exp1_int$Condition <- droplevels(Exp1_int$Condition)
 ```
 
 ## Frequentist LMMs 
 ### Determine if clustering exists for story ID and participants
 ```{r}
-# Model:ranova(lmer(help.response~(1|Participant)+(1|Story_ID), data=Exp1.df))
+# Model:ranova(lmer(help.response ~ (1|Participant) + (1|Story_ID), data = Exp1.df))
 readRDS("VE1.rds")
 ```
 ### Contrast between version 1 and 2
 ```{r}
-# Detail--Model:lmer(Detail.response~Version+(1|Participant)+(1|Story_ID), data=Exp1.df)
+# Detail -- Model:lmer(Detail.response ~ Version + (1|Participant) + (1|Story_ID), data = Exp1.df)
 anova(readRDS("Vdiff_det.rds"))
 #-----------------------------------------------------------------------------------------------------------------------
-# Coherence--Model:lmer(Coherence.response~Version+(1|Participant)+(1|Story_ID), data=Exp1.df)
+# Coherence -- Model:lmer(Coherence.response ~ Version + (1|Participant) + (1|Story_ID), data = Exp1.df)
 anova(readRDS("Vdiff_coh.rds"))
 #-----------------------------------------------------------------------------------------------------------------------
-# Willingness to help--Model:lmer(help.response~Version+(1|Participant)+(1|Story_ID), data=Exp1.df)
+# Willingness to help -- Model:lmer(help.response ~ Version + (1|Participant) + (1|Story_ID), data = Exp1.df)
 anova(readRDS("Vdiff_help.rds"))
 ```
 
 ### Replication of PSE
 ```{r}
-# Parsimonious model: lmer(help.response~Condition+(dummy_img+dummy_est|Participant)+(1|Story_ID), data= Exp1.df)
-PSE_exp1<-readRDS("PSE_exp1.rds")
+# Parsimonious model: lmer(help.response ~ Condition + (dummy_img + dummy_est|Participant) + (1|Story_ID), data = Exp1.df)
+PSE_exp1 <- readRDS("PSE_exp1.rds")
 # F-test with Kenward-Roger approximation of degress of freedom
-anova(PSE_exp1, ddf='Kenward-Roger')
+anova(PSE_exp1, ddf = 'Kenward-Roger')
 # Effect Size
 r.squaredGLMM(PSE_exp1)
 # Post hoc comparisons
-(posthoc_exp1<-readRDS("posthoc_exp1.rds"))
-confint (posthoc_exp1)
+(posthoc_exp1 <- readRDS("posthoc_exp1.rds"))
+confint(posthoc_exp1)
 ```
-#### Plots
+
+#### Plots: Figure 1A
 ```{r}
-means_exp1<- data.frame(posthoc_exp1$emmeans)
-colnames(means_exp1)[1]<- "Conditions"
+means_exp1 <- data.frame(posthoc_exp1$emmeans)
+colnames(means_exp1)[1] <- "Conditions"
 bar_plot(means_exp1, palette) +
-  xlab ("Condition") +
-  scale_x_discrete(labels=c("Identify Media Source", "Estimate Helping", "Imagine Helping")) 
+  xlab("Condition") +
+  scale_x_discrete(labels = c("Identify Media Source", "Estimate Helping", "Imagine Helping")) 
 ```
 
 #### T-tests
 ```{r}
 # PSE was also replicated using statistical protocols (i.e., t-test) of Gaesser and Schacter (2014)
 
-# Exp1_pmeans.df <- psych::describeBy(Exp1.df$help.response, group =list (Exp1.df$Condition,Exp1.df$Participant), mat=TRUE, na.rm= TRUE)
-# colnames(Exp1_pmeans.df)[2:3] <- c('Condition', 'Participants')
-
 # Models:
-# PSE_ttest_exp1_id <- t.test (mean ~ Condition, data = Exp1_pmeans.df, paired = T, subset= Condition != "Estimate")
-# PSE_ttest_exp1_est <- t.test (mean ~ Condition, data = Exp1_pmeans.df, paired = T, subset= Condition != "Identify")
+# PSE_ttest_exp1_id <- t.test (mean ~ Condition, data = Exp1_pmeans.df, paired = T, subset = Condition != "Estimate")
+# PSE_ttest_exp1_est <- t.test (mean ~ Condition, data = Exp1_pmeans.df, paired = T, subset = Condition != "Identify")
 
 # Imagine helping condition vs Identify media source condition
 readRDS('PSE_ttest_exp1_id.rds')
@@ -108,51 +119,51 @@ readRDS('PSE_ttest_exp1_est.rds')
 ```
 
  
-### Vividness measure by simulation condition interactions
+### Vividness measure by condition interactions
 ```{r}
-# Detail--Parsimonious model: lmer (help.response~Condition*Detail_C+(dummy_img+dummy_img:Detail_C|Participant)+(Detail_C|Story_ID),data= Exp1_int)
-int_det_exp1<-readRDS("int_det_exp1.rds")
+# Detail -- Parsimonious model: lmer (help.response ~ Condition*Detail_C + (dummy_img + dummy_img:Detail_C|Participant) + (Detail_C|Story_ID), data = Exp1_int)
+int_det_exp1 <- readRDS("int_det_exp1.rds")
 confint(int_det_exp1, c("ConditionImagine", "Detail_C", "ConditionImagine:Detail_C"))
 # F-test using Kenward-Roger approximation of degress of freedom
-anova(int_det_exp1, ddf='Kenward-Roger');summary(int_det_exp1)
+anova(int_det_exp1, ddf = 'Kenward-Roger'); summary(int_det_exp1)
 # Effect Size
 r.squaredGLMM(int_det_exp1)
 #------------------------------------------------------------------------------------------------------------------------
-# Coherence--Parsimonious model:lmer (help.response~Condition*Coherence_C+(dummy_img|Participant)+(Coherence_C|Story_ID),data= Exp1_int)
-int_coh_exp1<-readRDS("int_coh_exp1.rds")
+# Coherence -- Parsimonious model:lmer(help.response ~ Condition*Coherence_C + (dummy_img|Participant) + (Coherence_C|Story_ID), data = Exp1_int)
+int_coh_exp1 <- readRDS("int_coh_exp1.rds")
 confint(int_coh_exp1, c("ConditionImagine", "Coherence_C", "ConditionImagine:Coherence_C"))
 # F-test using Kenward-Roger approximation of degress of freedom
-anova(int_coh_exp1, ddf='Kenward-Roger');summary(int_coh_exp1)
+anova(int_coh_exp1, ddf = 'Kenward-Roger'); summary(int_coh_exp1)
 # Effect Size
 r.squaredGLMM(int_coh_exp1)
 #------------------------------------------------------------------------------------------------------------------------
 # frequentist CLMMs analysis
-# Detail--model: clmm(help.response~Condition*Detail_C+(dummy_img+dummy_img:Detail_C|Participant)+(Detail_C|Story_ID),data= oridnal1.df,link="logit")
-summary(ordinal_det1<-readRDS("ordinal_det1.rds"))
-confint(ordinal_det1,"ConditionImagine:Detail_C")
+# Detail--model: clmm(help.response ~ Condition*Detail_C + (dummy_img + dummy_img:Detail_C|Participant) + (Detail_C|Story_ID), data = oridnal1.df, link = "logit")
+summary(ordinal_det1 <- readRDS("ordinal_det1.rds"))
+confint(ordinal_det1, "ConditionImagine:Detail_C")
 ```
 
-#### Plots
+#### Plots: Figure 3A and Figure 3C
 ```{r}
-# Detail
-freqplot_det.df1<-ggpredict(int_det_exp1, c("Detail_C[-4,0,4]","Condition"))
-ggplot(freq_plot_det.df1, aes(x, predicted, colour= group)) +
+# Detail: Figure 3A
+freqplot_det.df1 <- ggpredict(int_det_exp1, c("Detail_C[-4,0,4]", "Condition"))
+ggplot(freq_plot_det.df1, aes(x, predicted, colour = group)) +
   geom_line() +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group, color = NULL), alpha = .4) +
   theme_classic() +
-  labs(title="",x="Scene Detail", y = "Willingness to help", fill="Condition") +
+  labs(title ="",x="Scene Detail", y = "Willingness to help", fill = "Condition") +
   scale_color_manual(values = c(palette[2], palette[3]), 
                      labels = c("Estimate Helping", "Imagine Helping")) +
   scale_fill_manual(values = c(palette[2], palette[3]), 
                     labels = c("Estimate Helping", "Imagine Helping")) 
 #------------------------------------------------------------------------------------------------------------------------
-# Coherence
-freqplot_coh.df1<-ggpredict(int_coh_exp1, c("Coherence_C[-4,0,4]","Condition"))
-ggplot(freqplot_coh.df1, aes(x, predicted, colour= group)) +
+# Coherence: Figure 3C
+freqplot_coh.df1 <- ggpredict(int_coh_exp1, c("Coherence_C[-4,0,4]", "Condition"))
+ggplot(freqplot_coh.df1, aes(x, predicted, colour = group)) +
   geom_line() +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group, color = NULL), alpha = .4) +
   theme_classic() +
-  labs(title="",x="Scene Coherence", y = "Willingness to help", fill="Simulation Condition") +
+  labs(title = "",x = "Scene Coherence", y = "Willingness to help", fill = "Condition") +
   scale_color_manual(values = c(palette[2], palette[3]), 
                      labels = c("Estimate Helping", "Imagine Helping")) +
   scale_fill_manual(values = c(palette[2], palette[3]), 
@@ -161,73 +172,71 @@ ggplot(freqplot_coh.df1, aes(x, predicted, colour= group)) +
 ## Bayesian CLMMs
 ### Assess differences between versions
 ```{r}
-# Detail-- model: 
-# Vdiff_det_bayes<- brm(data= Exp1_int, family=cumulative("logit"), 
-#                   Detail.response~Version+(1|Participant)+(1|Story_ID), 
-#                   prior= c(prior(normal (0,1), class=b), 
-#                            prior(normal(0,1.2), class=Intercept),
-#                            prior(exponential(1), class= sd)),
-#                   iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
+# Detail -- model: 
+# Vdiff_det_bayes <- brm(data = Exp1_int, family = cumulative("logit"), 
+#                        Detail.responsee ~ Version + (1|Participant)+(Version|Story_ID),
+#                           prior = c(prior(normal(0,1), class = b), 
+#                                     prior(normal(0,1.2), class = Intercept),
+#                                     prior(exponential(1), class = sd)),
+#                        iter = 7000, warmup = 2000,chains = 8, cores = 8, seed = 67, sample_prior = T, save_all_pars = T)
 
-Vdiff_det_bayes<-readRDS("Vdiff_det_bayes.rds")
+Vdiff_det_bayes <- readRDS("Vdiff_det_bayes.rds")
 # Summary 
-summary(Vdiff_det_bayes, prob=0.89)
+summary(Vdiff_det_bayes, prob = 0.89)
 # BF01
-(BF01_detV<-hypothesis(Vdiff_det_bayes, hypothesis =c("Version2=0"),alpha=0.055, seed=67));plot(BF01_detV)
+(BF01_detV <- hypothesis(Vdiff_det_bayes, hypothesis = c("Version2 = 0"),alpha = 0.055, seed = 67)); plot(BF01_detV)
 # pd
-colMeans(BF01_detV$samples<0)
+colMeans(BF01_detV$samples < 0)
 #------------------------------------------------------------------------------------------------------------------------
-# Coherence-- model: 
-# Vdiff_coh_bayes<- brm(data= Exp1_int, family=cumulative("logit"), 
-#                  bf(Coherence.response~Version+(1|Participant)+(Version|Story_ID))+
-#                       lf(disc ~ 0+Version, cmc=F), 
-#                  prior= c(prior(normal (0,1), class=b), 
-#                           prior(normal(0,1.2), class=Intercept),
-#                           prior(exponential(1), class= sd),
-#                           prior(lkj(1), class = cor)),
-#                  iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
+# Coherence -- model: 
+# Vdiff_coh_bayes <- brm(data = Exp1_int, family = cumulative("logit"), 
+#                        Coherence.response ~ Version + (1|Participant) + (Version|Story_ID),
+#                           prior = c(prior(normal(0,1), class = b), 
+#                                     prior(normal(0,1.2), class = Intercept),
+#                                     prior(exponential(1), class = sd),
+#                                     prior(lkj(1), class = cor)),
+#                        iter = 7000, warmup = 2000, chains = 8, cores = 8, seed = 67, sample_prior = T, save_all_pars = T)
 
-Vdiff_coh_bayes<-readRDS("Vdiff_coh_bayes.rds")
+Vdiff_coh_bayes <- readRDS("Vdiff_coh_bayes.rds")
 # Summary 
-summary(Vdiff_coh_bayes, prob=0.89)
+summary(Vdiff_coh_bayes, prob = 0.89)
 # BF01
-(BF01_cohV<-hypothesis(Vdiff_coh_bayes, hypothesis =c("Version2=0"),alpha=0.055, seed=67));plot(BF01_cohV)
+(BF01_cohV <- hypothesis(Vdiff_coh_bayes, hypothesis = c("Version2 = 0"), alpha = 0.055, seed = 67)); plot(BF01_cohV)
 # pd
-colMeans(BF01_cohV$samples<0)
+colMeans(BF01_cohV$samples < 0)
 #------------------------------------------------------------------------------------------------------------------------
 # Help -- model: 
-# Vdiff_help_bayes<- brm(data= Exp1.df, family=cumulative("logit"), 
-#                  bf(help.response~Version+(1|Participant)+(Version|Story_ID))+
-#                     lf(disc ~ 0+Version, cmc=F), 
-#                  prior= c(prior (normal(0,1), class=b), 
-#                           prior(normal(0,1.2), class=Intercept),
-#                           prior(exponential(1), class= sd),
-#                           prior(lkj(1), class = cor)), 
-#                  iter=7000,warmup=2000,chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
+# Vdiff_help_bayes <- brm(data = Exp1.df, family = cumulative("logit"), 
+#                        help.response ~ Version + (1|Participant) + (Version|Story_ID),
+#                           prior = c(prior(normal(0,1), class = b), 
+#                                    prior(normal(0,1.2), class = Intercept),
+#                                    prior(exponential(1), class = sd),
+#                                    prior(lkj(1), class = cor)), 
+#                  iter = 7000, warmup = 2000,chains = 8, cores = 8, seed = 67, sample_prior = T, save_all_pars = T)
 
-Vdiff_help_bayes<-readRDS("Vdiff_help_bayes.rds")
+Vdiff_help_bayes <- readRDS("Vdiff_help_bayes.rds")
 # Summary 
-summary(Vdiff_help_bayes, prob=0.89)
+summary(Vdiff_help_bayes, prob = 0.89)
 # BF01
-(BF01_helpV<-hypothesis(Vdiff_help_bayes, hypothesis =c("Version2=0"),alpha=0.055, seed=67))
+(BF01_helpV <- hypothesis(Vdiff_help_bayes, hypothesis = c("Version2 = 0"), alpha = 0.055, seed = 67))
 # pd
-colMeans(BF01_helpV$samples>0)
+colMeans(BF01_helpV$samples > 0)
 ```
 
 ### Replication of PSE
 ```{r}
 # Model:
-# brm(data= Exp1.df, family=cumulative("logit"), 
-#     bf(help.response~Condition+(Condition|Participant)+(Condition|Story_ID))+
-#        lf(disc ~ 0+Condition, cmc=F),
-#     prior= c(prior(normal (0.2,1), class=b, coef='ConditionImagine'),    
-#              prior (normal(0,1), class=b, coef='ConditionEstimate'), 
-#              prior(normal(0,1.2), class=Intercept),
-#              prior(exponential(1), class= sd),
-#              prior(lkj(1), class = cor)), 
-#     iter=7000, warmup=2000, chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
+# brm(data = Exp1.df, family = cumulative("logit"), 
+#     bf(help.response ~ Condition + (Condition|Participant) + (Condition|Story_ID)) +
+#     lf(disc ~ 0 + Condition, cmc = F),
+#        prior = c(prior(normal(0.2,1), class = b, coef = 'ConditionImagine'),    
+#                  prior(normal(0,1), class = b, coef = 'ConditionEstimate'), 
+#                  prior(normal(0,1.2), class = Intercept),
+#                  prior(exponential(1), class = sd),
+#                  prior(lkj(1), class = cor)), 
+#     iter = 7000, warmup = 2000, chains = 8, cores = 8, seed = 67, sample_prior = T, save_all_pars = T)
 
-Bayes_Help_exp1<- readRDS("Bayes_Help_exp1.rds")
+Bayes_Help_exp1 <- readRDS("Bayes_Help_exp1.rds")
 # Diagnostic Checks: pp check and traceplots
 pp_check(Bayes_Help_exp1)
 plot(Bayes_Help_exp1)
@@ -237,42 +246,40 @@ prior_sim(Bayes_Help_exp1, c("sd_Participant", 'cor_Participant', "b_ConditionIm
 bayes_samples(Bayes_Help_exp1)
 
 # Summary
-summary(Bayes_Help_exp1, prob=0.89)
-# Evidence Ratios (not reported)
-(ER_help1<-hypothesis(Bayes_Help_exp1, hypothesis =c("ConditionImagine>0", "ConditionImagine - ConditionEstimate>0"),alpha=0.055, seed=67))
+summary(Bayes_Help_exp1, prob = 0.89)
 # pd
-colMeans(ER_help1$samples>0)
+colMeans(ER_help1$samples > 0)
 # OR
-OR1<- exp(ER_help1$samples)
-colnames(OR1)<- c("Imagine-Identify", "Imagine-Estimate")
+OR1 <- exp(ER_help1$samples)
+colnames(OR1) <- c("Imagine - Identify", "Imagine - Estimate")
 posterior_summary(OR1, probs = c(0.055, 0.945))
 
 # Extract posterior samples 
-set.seed(67);posterior_exp1<- posterior_samples(Bayes_Help_exp1)
-# Latent SD of simulation conditions
+set.seed(67);posterior_exp1 <- posterior_samples(Bayes_Help_exp1)
+# Latent SD of conditions
 latent_SD(posterior_exp1)
 ```
 
-#### Plots
+#### Plots: Figure 2A and Figure 2C
 ```{r}
-# Violin plots
-PSE_plots1<- ER_help1$samples
-colnames(PSE_plots1)<- c("Identify", "Estimate")
-PSE_plots1<- PSE_plots1 %>% gather("Identify", "Estimate", key= Condition, value= Posterior)
-violin_PSE1<- violin_bayes(PSE_plots1, HDI_range=c(0.055, 0.945))[[1]]
-violin_PSE1+
-  labs(x="Condition Contrasts", y = "logit")+
+# Violin plots: Figure 2A
+PSE_plots1 <- ER_help1$samples
+colnames(PSE_plots1) <- c("Identify", "Estimate")
+PSE_plots1 <- PSE_plots1 %>% gather("Identify", "Estimate", key = Condition, value = Posterior)
+violin_PSE1 <- violin_bayes(PSE_plots1, HDI_range = c(0.055, 0.945))[[1]]
+violin_PSE1 +
+  labs(x="Condition Contrasts", y = "logit") +
   theme(legend.position = "none") +
-  scale_x_discrete(labels=c( "Imagine Helping > Estimate Helping", "Imagine Helping > Identify Media Source")) +
-  scale_fill_manual(values=c(palette[4], palette[5])) +
+  scale_x_discrete(labels = c( "Imagine Helping > Estimate Helping", "Imagine Helping > Identify Media Source")) +
+  scale_fill_manual(values = c(palette[4], palette[5])) +
   scale_color_manual(values = c(palette[4], palette[5]))
 #-----------------------------------------------------------------------------------------------------------------------
-# Predicted probability in each response category
-PSE_plot_exp1<-conditional_effects(Bayes_Help_exp1,categorical=T)
+# Predicted probability in each response category: Figure 2C
+PSE_plot_exp1 <- conditional_effects(Bayes_Help_exp1, categorical = T)
 plot(PSE_plot_exp1)[[1]] +
-  scale_x_discrete(labels=c("Identify Media Source", "Estimate Helping", "Imagine Helping")) +
+  scale_x_discrete(labels = c("Identify Media Source", "Estimate Helping", "Imagine Helping")) +
   theme_classic() +
-  xlab("Simulation Conditions") +
+  xlab("Conditions") +
   ylim (0, 0.45)
 ```
 
@@ -282,19 +289,19 @@ plot(PSE_plot_exp1)[[1]] +
 
 
 
-### Vividness measures by simulation condition interactions
+### Vividness measures by condition interactions
 ```{r}
 # Detail -- Model:
-# brm(data= Exp1_int, family=cumulative("logit"), 
-#      bf(help.response~Condition*Detail_C+(Condition*Detail_C|Participant)+(Condition*Detail_C|Story_ID)) +
-#         lf(disc ~ 0+Condition, cmc=F), 
-#      prior= c(prior(normal (0.2,1), class=b), 
-#               prior(normal(0,1.2), class=Intercept),
-#               prior(exponential(1), class= sd),
-#               prior(lkj(1), class = cor)),
-#      iter=7000, warmup=2000, chains=8, cores=8, seed=67, sample_prior=T, save_all_pars = T)
+# brm(data= Exp1_int, family = cumulative("logit"), 
+#      bf(help.response ~ Condition*Detail_C + (Condition*Detail_C|Participant) + (Condition*Detail_C|Story_ID)) +
+#      lf(disc ~ 0 + Condition, cmc = F), 
+#         prior = c(prior(normal(0.2,1), class = b), 
+#                   prior(normal(0,1.2), class = Intercept),
+#                   prior(exponential(1), class = sd),
+#                   prior(lkj(1), class = cor)),
+#      iter = 7000, warmup = 2000, chains = 8, cores = 8, seed = 67, sample_prior = T, save_all_pars = T)
 
-Bayes_det_exp1<- readRDS("Bayes_det_exp1.rds")
+Bayes_det_exp1 <- readRDS("Bayes_det_exp1.rds")
 # Diagnostic Checks: pp check and traceplots
 pp_check(Bayes_det_exp1)
 plot(Bayes_det_exp1)
@@ -302,28 +309,28 @@ plot(Bayes_det_exp1)
 bayes_samples(Bayes_det_exp1)
 
 # Summary
-summary(Bayes_det_exp1, prob=0.89)
+summary(Bayes_det_exp1, prob = 0.89)
 # pd
 p_direction(Bayes_det_exp1, parameters = c("b_Detail_C", "b_Condition"))
 # OR
-posterior_summary(exp(posterior_det_exp1$`b_ConditionImagine:Detail_C`), probs=c(0.055, 0.945))
+posterior_summary(exp(posterior_det_exp1$`b_ConditionImagine:Detail_C`), probs = c(0.055, 0.945))
 
 # Extract posterior samples 
-set.seed(67);posterior_det_exp1<- posterior_samples(Bayes_det_exp1)
-# Latent SD of simulation conditions
+set.seed(67); posterior_det_exp1 <- posterior_samples(Bayes_det_exp1)
+# Latent SD of conditions
 latent_SD(posterior_det_exp1)
 #------------------------------------------------------------------------------------------------------------------------
 # Coherence -- Model: 
-#brm(data= Exp1_int, family=cumulative("logit"), 
-#     bf(help.response~Condition*Coherence_C+(Condition*Coherence_C|Participant)+(Condition*Coherence_C|Story_ID)) +
-#        lf(disc ~ 0+Condition, cmc=F),
-#     prior= c(prior(normal (0.2,1), class=b),
-#              prior(normal(0,1.2), class=Intercept),
-#              prior(exponential(1), class= sd),
-#              prior(lkj(1), class = cor)),
-#     iter=7000, warmup=2000, chains=8, cores=8, seed=67,  sample_prior=T)
+#brm(data = Exp1_int, family = cumulative("logit"), 
+#     bf(help.response ~ Condition*Coherence_C + (Condition*Coherence_C|Participant) + (Condition*Coherence_C|Story_ID)) +
+#     lf(disc ~ 0 + Condition, cmc=F),
+#        prior = c(prior(normal (0.2,1), class = b),
+#                  prior(normal(0,1.2), class = Intercept),
+#                  prior(exponential(1), class = sd),
+#                  prior(lkj(1), class = cor)),
+#     iter = 7000, warmup = 2000, chains = 8, cores = 8, seed = 67,  sample_prior = T)
 
-Bayes_coh_exp1<- readRDS("Bayes_coh_exp1.rds")
+Bayes_coh_exp1 <- readRDS("Bayes_coh_exp1.rds")
 # Diagnostic Checks: pp check and traceplots
 pp_check(Bayes_coh_exp1)
 plot(Bayes_coh_exp1)
@@ -331,29 +338,31 @@ plot(Bayes_coh_exp1)
 bayes_samples(Bayes_coh_exp1)
 
 # Summary
-summary(Bayes_coh_exp1, prob=0.89)
+summary(Bayes_coh_exp1, prob = 0.89)
 # pd
 p_direction(Bayes_coh_exp1, parameters = c("b_Coherence_C", "b_Condition"))
 # OR
-posterior_summary(exp(posterior_coh_exp1$`b_ConditionImagine:Coherence_C`), probs=c(0.055, 0.945))
+posterior_summary(exp(posterior_coh_exp1$`b_ConditionImagine:Coherence_C`), probs = c(0.055, 0.945))
 
 # Extract posterior samples 
-set.seed(67);posterior_coh_exp1<- posterior_samples(Bayes_coh_exp1)
-# Latent SD of simulation conditions
+set.seed(67); posterior_coh_exp1 <- posterior_samples(Bayes_coh_exp1)
+# Latent SD of conditions
 latent_SD(posterior_coh_exp1)
 ```
 
-#### Plots
+#### Plots: Figure 4A, Figure 4C, Figure 4E, Figure 6A, and Figure 6C
 ```{r}
-# Violin plots -- Detail: Separate Conditions
-det_posterior1<- cbind.data.frame('Estimate Helping' = posterior_det_exp1$b_Detail_C, "Imagine Helping" = posterior_det_exp1$b_Detail_C + posterior_det_exp1$`b_ConditionImagine:Detail_C`)
-plot_det1<- det_posterior1 %>% gather("Estimate Helping", "Imagine Helping", key= Condition, value= Posterior)
-violin_det1<- violin_bayes(plot_det1, HDI_range= c(0.055, 0.945))[[1]]
+# Violin plots -- Detail: Separate Conditions (Figure 4A)
+det_posterior1 <- cbind.data.frame("Estimate Helping" = posterior_det_exp1$b_Detail_C, 
+                                   "Imagine Helping" = posterior_det_exp1$b_Detail_C + posterior_det_exp1$`b_ConditionImagine:Detail_C`)
+plot_det1 <- det_posterior1 %>% gather("Estimate Helping", "Imagine Helping", 
+                                      key = Condition, value = Posterior)
+violin_det1 <- violin_bayes(plot_det1, HDI_range = c(0.055, 0.945))[[1]]
 violin_det1 +
-  labs(x="Simulation Condition", y = "logit") +
-  theme(legend.position='none') +
+  labs(x = "Condition", y = "logit") +
+  theme(legend.position = 'none') +
   ylim(-0.2, 1.5) +
-  scale_fill_manual(values=c(palette[2], palette[3])) +
+  scale_fill_manual(values = c(palette[2], palette[3])) +
   scale_color_manual(values = c(palette[2], palette[3]))
 
 # Summary
@@ -361,59 +370,63 @@ violin_bayes(plot_det1, HDI_range = c(0.055, 0.945))[[2]]
 # pd 
 p_direction(det_posterior1)
 # OR
-posterior_summary(exp(det_posterior1), probs=c(0.055, 0.945))
+posterior_summary(exp(det_posterior1), probs = c(0.055, 0.945))
 #--------------------------------------------------------------------------------------------------------------------------
-# Violin plots -- Coherence: Separate Conditions
-coh_posterior1<- cbind.data.frame('Estimate Helping' = posterior_coh_exp1$b_Coherence_C, "Imagine Helping" = posterior_coh_exp1$b_Coherence_C + posterior_coh_exp1$`b_ConditionImagine:Coherence_C`)
-plot_coh1<- coh_posterior1 %>% gather("Estimate Helping", "Imagine Helping", key= Condition, value= Posterior)
-violin_coh1<- violin_bayes(plot_coh1,HDI_range= c(0.055, 0.945))[[1]]
+# Violin plots -- Coherence: Separate Conditions (Figure 4C)
+coh_posterior1 <- cbind.data.frame('Estimate Helping' = posterior_coh_exp1$b_Coherence_C,
+                                   "Imagine Helping" = posterior_coh_exp1$b_Coherence_C + posterior_coh_exp1$`b_ConditionImagine:Coherence_C`)
+plot_coh1 <- coh_posterior1 %>% gather("Estimate Helping", "Imagine Helping", 
+                                       key = Condition, value = Posterior)
+violin_coh1 <- violin_bayes(plot_coh1,HDI_range = c(0.055, 0.945))[[1]]
 violin_coh1 +
-  labs(x="Simulation Condition", y = "logit") +
-  theme(legend.position='none') +
+  labs(x = "Condition", y = "logit") +
+  theme(legend.position = 'none') +
   ylim(-0.2, 1.5) +
-  scale_fill_manual(values=c(palette[2], palette[3])) +
+  scale_fill_manual(values = c(palette[2], palette[3])) +
   scale_color_manual(values = c(palette[2], palette[3])) 
 
 # Summary
-violin_bayes(plot_coh1,CI_range =  c(0.055, 0.945))[[2]]
+violin_bayes(plot_coh1,CI_range = c(0.055, 0.945))[[2]]
 # pd 
 p_direction(coh_posterior1)
 # OR
-posterior_summary(exp(coh_posterior1), probs=c(0.055, 0.945))
+posterior_summary(exp(coh_posterior1), probs = c(0.055, 0.945))
 #--------------------------------------------------------------------------------------------------------------------------
-# Violin plots -- Detail and Coherence interaction effects
-plot_int1<- cbind.data.frame("Detail" = posterior_det_exp1$`b_ConditionImagine:Detail_C`, "Coherence" = posterior_coh_exp1$`b_ConditionImagine:Coherence_C`)
-plot_int1<- plot_int1 %>% gather("Detail", "Coherence", key= Condition, value= Posterior)
-violin_int1<- violin_bayes(plot_int1, HDI_range= c(0.055, 0.945))[[1]]
+# Violin plots -- Detail and Coherence interaction effects (Figure 4E)
+plot_int1 <- cbind.data.frame("Detail" = posterior_det_exp1$`b_ConditionImagine:Detail_C`, 
+                              "Coherence" = posterior_coh_exp1$`b_ConditionImagine:Coherence_C`)
+plot_int1 <- plot_int1 %>% gather("Detail", "Coherence", 
+                                 key = Condition, value = Posterior)
+violin_int1 <- violin_bayes(plot_int1, HDI_range = c(0.055, 0.945))[[1]]
 violin_int1 +
-  labs(x="Vivindess by Simulation Condition Interactions", y ="logit") +
+  labs(x="Vividness by Condition Interactions", y ="logit") +
   theme(legend.position = "none") +
   ylim(-0.5, 1.5) +  
-  scale_fill_manual(values=c(palette[6], palette[7])) +
+  scale_fill_manual(values = c(palette[6], palette[7])) +
   scale_color_manual(values = c(palette[6], palette[7]))
 #--------------------------------------------------------------------------------------------------------------------------
-# Predicted linear trend overlay compression of scale constraint:: Detail
-detplot1<- conditional_effects(Bayes_det_exp1)
+# Predicted linear trend overlay compression of scale constraint:: Detail (Figure 6A)
+detplot1 <- conditional_effects(Bayes_det_exp1)
 plot(detplot1)[[3]] +
   xlim(-4, 5) +
-  geom_abline(intercept=5.41, slope=0.26, colour="black", linetype='dashed') + 
+  geom_abline(intercept = 5.41, slope = 0.26, colour = "black", linetype = 'dashed') + 
   theme_classic() +  
-  labs(x="Detail", y = "Willingness to help") +
-  scale_fill_discrete(name = "Simulation Condition", labels = c("Estimate Helping", "Imagine Helping")) +
-  scale_fill_manual(values=c(palette[2], palette[3]),
+  labs(x = "Detail", y = "Willingness to help") +
+  scale_fill_discrete(name = "Condition", labels = c("Estimate Helping", "Imagine Helping")) +
+  scale_fill_manual(values = c(palette[2], palette[3]),
                     labels = c("Estimate Helping", "Imagine Helping")) +
   scale_color_manual(values = c(palette[2], palette[3]),
                      labels = c("Estimate Helping", "Imagine Helping"))
 #--------------------------------------------------------------------------------------------------------------------------
-# Predicted linear trend overlay compression of scale constraint: Coherencee
-cohplot1<- conditional_effects(Bayes_coh_exp1)
-plot(cohplot1)[[3]]+
-  xlim(-4, 4)+
-  geom_abline(intercept=5.35, slope=0.38, colour="black", linetype='dashed') +
+# Predicted linear trend overlay compression of scale constraint: Coherence (Figure 6C)
+cohplot1 <- conditional_effects(Bayes_coh_exp1)
+plot(cohplot1)[[3]] +
+  xlim(-4, 4) +
+  geom_abline(intercept = 5.35, slope = 0.38, colour = "black", linetype = 'dashed') +
   theme_classic() +  
-  scale_fill_discrete(name = "Simulation Condition", labels = c("Estimate Helping", "Imagine Helping")) +
-  labs(x="Coherence", y = "Willingness to help") +
-  scale_fill_manual(values=c(palette[2], palette[3]),
+  scale_fill_discrete(name = "Condition", labels = c("Estimate Helping", "Imagine Helping")) +
+  labs(x = "Coherence", y = "Willingness to help") +
+  scale_fill_manual(values = c(palette[2], palette[3]),
                     labels = c("Estimate Helping", "Imagine Helping")) +
   scale_color_manual(values = c(palette[2], palette[3]),
                      labels = c("Estimate Helping", "Imagine Helping"))
@@ -475,7 +488,7 @@ confint (posthoc_exp2)
 #### Plots
 ```{r}
 means_exp2<- data.frame(posthoc_exp2$emmeans)
-colnames(means_exp2)[1]<- "Conditions"
+colnames(means_exp2)[1] <- "Conditions"
 bar_plot(means_exp2, palette) +
   scale_x_discrete(labels=c("Identify Media Source", "Estimate Helping", "Imagine Helping")) +
   xlab ("Condition")
@@ -497,7 +510,7 @@ readRDS('PSE_ttest_exp2_id.rds')
 readRDS('PSE_ttest_exp2_est.rds')
 ```
 
-### Vividness measure by simulation condition interactions
+### Vividness measure by condition interactions
 ```{r}
 # Detail--Parsimonious model: lmer (help.response~Condition*Detail_C+Gender_C*Face_gender_C+(dummy_img+Detail_C|participant)+(1|Story_ID),data= Exp2_int)
 int_det_exp2<-readRDS("int_det_exp2.rds")
@@ -528,7 +541,7 @@ ggplot(freqplot_det.df2, aes(x, predicted, colour= group)) +
   geom_line() +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group, color = NULL), alpha = .4) +
   theme_classic() +
-  labs(title="",x="Detail", y = "Willingness to help", fill="Simulation Condition") +
+  labs(title="",x="Detail", y = "Willingness to help", fill="Condition") +
   scale_color_manual(values = c(palette[2], palette[3]), 
                      labels = c("Estimate Helping", "Imagine Helping")) +
   scale_fill_manual(values = c(palette[2], palette[3]), 
@@ -540,7 +553,7 @@ ggplot(freqplot_coh.df2, aes(x, predicted, colour= group)) +
   geom_line() +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group, color = NULL), alpha = .4) +
   theme_classic() +
-  labs(title="",x="Coherence", y = "Willingness to help", fill="Simulation Condition") +
+  labs(title="",x="Coherence", y = "Willingness to help", fill="Condition") +
   scale_color_manual(values = c(palette[2], palette[3]), 
                      labels = c("Estimate Helping", "Imagine Helping")) +
   scale_fill_manual(values = c(palette[2], palette[3]), 
@@ -569,6 +582,8 @@ Bayes_Help_exp2<- readRDS("Bayes_Help_exp2.rds")
 pp_check(Bayes_Help_exp2);plot(Bayes_Help_exp2)
 # Rhat and sample sizes
 bayes_samples(Bayes_Help_exp2)
+
+
 
 # Summary
 summary(Bayes_Help_exp2, prob=0.89)
@@ -605,7 +620,7 @@ plot(PSE_plot_exp2)[[1]] +
   ylim (0, 0.45)
 ```
 
-### Vividness measures by Simulation Condition interactions
+### Vividness measures by Condition interactions
 ```{r}
 # Detail -- Model:
 # brm(data= Exp2_int, family=cumulative("logit"), 
@@ -634,7 +649,7 @@ set.seed(67);posterior_det_exp2<- posterior_samples(Bayes_det_exp2)
 posterior_summary(exp(posterior_det_exp2$`b_ConditionImagine:Detail_C`), probs=c(0.055, 0.945))
 
 
-# Latent SD of simulation conditions
+# Latent SD of conditions
 latent_SD(posterior_det_exp2)
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 # Coherence -- Model: 
@@ -662,7 +677,7 @@ p_direction(Bayes_coh_exp2, parameters = c("b_Coherence_C", "b_Condition"))
 set.seed(67);posterior_coh_exp2<- posterior_samples(Bayes_coh_exp2)
 # OR
 posterior_summary(exp(posterior_coh_exp2$`b_ConditionImagine:Coherence_C`), probs=c(0.055, 0.945))
-# Latent SD of simulation conditions
+# Latent SD of conditions
 latent_SD(posterior_coh_exp2)
 ```
 
@@ -736,7 +751,7 @@ plot(cohplot2)[[3]]+
   xlim(-4, 3)+
   geom_abline(intercept=4.92, slope=0.55, colour="black", linetype='dashed') +
   theme_classic() +  
-  scale_fill_discrete(name = "Simulation Condition", labels = c("Estimate Helping", "Imagine Helping")) +
+  scale_fill_discrete(name = "Condition", labels = c("Estimate Helping", "Imagine Helping")) +
   labs(x="Coherence", y = "Willingness to help") +
   scale_fill_manual(values=c(palette[2], palette[3]),
                     labels = c("Estimate Helping", "Imagine Helping")) +
@@ -766,7 +781,7 @@ combined.df$Experiment <- as.factor (combined.df$Experiment)
 
 ### Bayesian CLMMs
 #### 3-way interactions
-* See vividness by simulation condition effect differ by experiment
+* See vividness by condition effect differ by experiment
 ```{r}
 # Detail--Model:
 #brm(data= combined.df, family=cumulative("logit"), 
@@ -819,7 +834,7 @@ colMeans(BF01_coh_3way$samples>0/4e4)
 
 
 
-#### Simulation Condition by Vividness measures interactions
+#### Condition by Vividness measures interactions
 ```{r}
 # Detail--Model:
 # brm(data= combined.df, family=cumulative("logit"), 
@@ -847,7 +862,7 @@ posterior_summary(exp(posterior_det_combine$`b_ConditionImagine:Detail_C`), prob
 
 # Extract posterior samples 
 set.seed(67);posterior_det_combine<- posterior_samples(Bayes_det_combine)
-# Latent SD of simulation conditions
+# Latent SD of conditions
 latent_SD(Bayes_det_combine)
 #-------------------------------------------------------------------------------------------------------------------------------
 # Coherence--Model:
@@ -876,7 +891,7 @@ posterior_summary(exp(posterior_coh_combine$`b_ConditionImagine:Coherence_C`), p
 
 # Extract posterior samples 
 set.seed(67);posterior_coh_combine<- posterior_samples(Bayes_coh_combine)
-# Latent SD of simulation conditions
+# Latent SD of conditions
 latent_SD(posterior_coh_combine)
 ```
 ##### Plots
