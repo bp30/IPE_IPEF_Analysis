@@ -20,7 +20,7 @@ rm(list = ls()); gc()
 
 
 # Package and directory set up
-```{r setup, include=FALSE}
+```{r setup, include = FALSE}
 # Load packages
 if (!require(pacman)) install.packages('pacman')
 pacman::p_load(sjstats, sjPlot, lme4, ordinal,lmerTest, emmeans, ggeffects, tidyverse, MuMIn, brms, bayestestR)
@@ -37,7 +37,7 @@ palette <- c("#eeaa7b", "#00b159", "#00aedb", "#F8766D", "#9590FF", "#CC9933", "
 ## Data 
 * Data loading and setup
 ```{r}
-Exp1.df <- read.csv('../../Experiment1_N=40.csv', header=T)
+Exp1.df <- read.csv('../../Experiment1_N=40.csv', header  = T)
 
 # Remove deleted trials from data frame
 Exp1.df <- Exp1.df[complete.cases(Exp1.df$Condition), ]
@@ -49,7 +49,7 @@ Exp1.df$Version <- as.factor(Exp1.df$Version)
 Exp1.df$Condition <- relevel(Exp1.df$Condition, ref = 'Identify')
 
 # Data transformations 
-Exp1.df<- Exp1.df %>% 
+Exp1.df <- Exp1.df %>% 
               mutate(
                 # Create dummy variables
                 dummy_img = as.numeric(Condition == 'Imagine'),
@@ -62,36 +62,38 @@ Exp1.df<- Exp1.df %>%
 # Create a new data file that only include estimate helping and imagine helping conditions for interation analyses
 Exp1_int <- Exp1.df %>% filter(Condition != 'Identify')
 Exp1_int$Condition <- droplevels(Exp1_int$Condition)
+
+# Models 
+load('Exp1_models.Rdata')
 ```
 
 ## Frequentist LMMs 
 ### Determine if clustering exists for story ID and participants
 ```{r}
-# Model:ranova(lmer(help.response ~ (1|Participant) + (1|Story_ID), data = Exp1.df))
-readRDS("VE1.rds")
+# Model: ranova(lmer(help.response ~ (1|Participant) + (1|Story_ID), data = Exp1.df))
+VE1
 ```
 ### Contrast between version 1 and 2
 ```{r}
 # Detail -- Model:lmer(Detail.response ~ Version + (1|Participant) + (1|Story_ID), data = Exp1.df)
-anova(readRDS("Vdiff_det.rds"))
+anova(Vdiff_det, ddf = 'Kenward-Roger')
 #-----------------------------------------------------------------------------------------------------------------------
 # Coherence -- Model:lmer(Coherence.response ~ Version + (1|Participant) + (1|Story_ID), data = Exp1.df)
-anova(readRDS("Vdiff_coh.rds"))
+anova(Vdiff_coh, ddf = 'Kenward-Roger')
 #-----------------------------------------------------------------------------------------------------------------------
 # Willingness to help -- Model:lmer(help.response ~ Version + (1|Participant) + (1|Story_ID), data = Exp1.df)
-anova(readRDS("Vdiff_help.rds"))
+anova(Vdiff_help, ddf = 'Kenward-Roger')
 ```
 
 ### Replication of PSE
 ```{r}
 # Parsimonious model: lmer(help.response ~ Condition + (dummy_img + dummy_est|Participant) + (1|Story_ID), data = Exp1.df)
-PSE_exp1 <- readRDS("PSE_exp1.rds")
 # F-test with Kenward-Roger approximation of degress of freedom
 anova(PSE_exp1, ddf = 'Kenward-Roger')
 # Effect Size
 r.squaredGLMM(PSE_exp1)
 # Post hoc comparisons
-(posthoc_exp1 <- readRDS("posthoc_exp1.rds"))
+posthoc_exp1
 confint(posthoc_exp1)
 ```
 
@@ -113,16 +115,16 @@ bar_plot(means_exp1, palette) +
 # PSE_ttest_exp1_est <- t.test (mean ~ Condition, data = Exp1_pmeans.df, paired = T, subset = Condition != "Identify")
 
 # Imagine helping condition vs Identify media source condition
-readRDS('PSE_ttest_exp1_id.rds')
+PSE_ttest_exp1_id
 # Imagine helping condition vs Estimate helping condition
-readRDS('PSE_ttest_exp1_est.rds')
+PSE_ttest_exp1_est
 ```
 
  
 ### Vividness measure by condition interactions
 ```{r}
 # Detail -- Parsimonious model: lmer(help.response ~ Condition*Detail_C + (dummy_img + dummy_img:Detail_C|Participant) + (Detail_C|Story_ID), data = Exp1_int)
-int_det_exp1 <- readRDS("int_det_exp1.rds")
+# Confidence intervals
 confint(int_det_exp1, c("ConditionImagine", "Detail_C", "ConditionImagine:Detail_C"))
 # F-test using Kenward-Roger approximation of degress of freedom
 anova(int_det_exp1, ddf = 'Kenward-Roger'); summary(int_det_exp1)
@@ -130,7 +132,7 @@ anova(int_det_exp1, ddf = 'Kenward-Roger'); summary(int_det_exp1)
 r.squaredGLMM(int_det_exp1)
 #------------------------------------------------------------------------------------------------------------------------
 # Coherence -- Parsimonious model:lmer(help.response ~ Condition*Coherence_C + (dummy_img|Participant) + (Coherence_C|Story_ID), data = Exp1_int)
-int_coh_exp1 <- readRDS("int_coh_exp1.rds")
+# Confidence intervals
 confint(int_coh_exp1, c("ConditionImagine", "Coherence_C", "ConditionImagine:Coherence_C"))
 # F-test using Kenward-Roger approximation of degress of freedom
 anova(int_coh_exp1, ddf = 'Kenward-Roger'); summary(int_coh_exp1)
@@ -139,7 +141,7 @@ r.squaredGLMM(int_coh_exp1)
 #------------------------------------------------------------------------------------------------------------------------
 # frequentist CLMMs analysis
 # Detail -- model: clmm(help.response ~ Condition*Detail_C + (dummy_img + dummy_img:Detail_C|Participant) + (Detail_C|Story_ID), data = oridnal1.df, link = "logit")
-summary(ordinal_det1 <- readRDS("ordinal_det1.rds"))
+summary(ordinal_det1)
 confint(ordinal_det1, "ConditionImagine:Detail_C")
 ```
 
@@ -147,7 +149,7 @@ confint(ordinal_det1, "ConditionImagine:Detail_C")
 ```{r}
 # Detail: Figure 3A
 freqplot_det.df1 <- ggpredict(int_det_exp1, c("Detail_C[-4,0,4]", "Condition"))
-ggplot(freq_plot_det.df1, aes(x, predicted, colour = group)) +
+ggplot(freqplot_det.df1, aes(x, predicted, colour = group)) +
   geom_line() +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group, color = NULL), alpha = .4) +
   theme_classic() +
@@ -179,8 +181,6 @@ ggplot(freqplot_coh.df1, aes(x, predicted, colour = group)) +
 #                                     prior(normal(0,1.2), class = Intercept),
 #                                     prior(exponential(1), class = sd)),
 #                        iter = 7000, warmup = 2000,chains = 8, cores = 8, seed = 67, sample_prior = T, save_all_pars = T)
-
-Vdiff_det_bayes <- readRDS("Vdiff_det_bayes.rds")
 # Summary 
 summary(Vdiff_det_bayes, prob = 0.89)
 # BF01
@@ -196,8 +196,6 @@ colMeans(BF01_detV$samples < 0)
 #                                     prior(exponential(1), class = sd),
 #                                     prior(lkj(1), class = cor)),
 #                        iter = 7000, warmup = 2000, chains = 8, cores = 8, seed = 67, sample_prior = T, save_all_pars = T)
-
-Vdiff_coh_bayes <- readRDS("Vdiff_coh_bayes.rds")
 # Summary 
 summary(Vdiff_coh_bayes, prob = 0.89)
 # BF01
@@ -213,8 +211,6 @@ colMeans(BF01_cohV$samples < 0)
 #                                    prior(exponential(1), class = sd),
 #                                    prior(lkj(1), class = cor)), 
 #                  iter = 7000, warmup = 2000,chains = 8, cores = 8, seed = 67, sample_prior = T, save_all_pars = T)
-
-Vdiff_help_bayes <- readRDS("Vdiff_help_bayes.rds")
 # Summary 
 summary(Vdiff_help_bayes, prob = 0.89)
 # BF01
@@ -235,8 +231,6 @@ colMeans(BF01_helpV$samples > 0)
 #                  prior(exponential(1), class = sd),
 #                  prior(lkj(1), class = cor)), 
 #     iter = 7000, warmup = 2000, chains = 8, cores = 8, seed = 67, sample_prior = T, save_all_pars = T)
-
-Bayes_Help_exp1 <- readRDS("Bayes_Help_exp1.rds")
 # Diagnostic Checks: pp check and traceplots
 pp_check(Bayes_Help_exp1)
 plot(Bayes_Help_exp1)
@@ -247,6 +241,8 @@ bayes_samples(Bayes_Help_exp1)
 
 # Summary
 summary(Bayes_Help_exp1, prob = 0.89)
+# Evidence ratio (not reported)
+ER_help1 <- hypothesis(Bayes_Help_exp1, c('ConditionImagine > 0' , 'ConditionImagine - ConditionEstimate > 0'))
 # pd
 colMeans(ER_help1$samples > 0)
 # OR
@@ -300,8 +296,6 @@ plot(PSE_plot_exp1)[[1]] +
 #                   prior(exponential(1), class = sd),
 #                   prior(lkj(1), class = cor)),
 #      iter = 7000, warmup = 2000, chains = 8, cores = 8, seed = 67, sample_prior = T, save_all_pars = T)
-
-Bayes_det_exp1 <- readRDS("Bayes_det_exp1.rds")
 # Diagnostic Checks: pp check and traceplots
 pp_check(Bayes_det_exp1)
 plot(Bayes_det_exp1)
@@ -312,11 +306,11 @@ bayes_samples(Bayes_det_exp1)
 summary(Bayes_det_exp1, prob = 0.89)
 # pd
 p_direction(Bayes_det_exp1, parameters = c("b_Detail_C", "b_Condition"))
-# OR
-posterior_summary(exp(posterior_det_exp1$`b_ConditionImagine:Detail_C`), probs = c(0.055, 0.945))
 
 # Extract posterior samples 
 set.seed(67); posterior_det_exp1 <- posterior_samples(Bayes_det_exp1)
+# OR
+posterior_summary(exp(posterior_det_exp1$`b_ConditionImagine:Detail_C`), probs = c(0.055, 0.945))
 # Latent SD of conditions
 latent_SD(posterior_det_exp1)
 #------------------------------------------------------------------------------------------------------------------------
@@ -329,8 +323,6 @@ latent_SD(posterior_det_exp1)
 #                  prior(exponential(1), class = sd),
 #                  prior(lkj(1), class = cor)),
 #     iter = 7000, warmup = 2000, chains = 8, cores = 8, seed = 67,  sample_prior = T)
-
-Bayes_coh_exp1 <- readRDS("Bayes_coh_exp1.rds")
 # Diagnostic Checks: pp check and traceplots
 pp_check(Bayes_coh_exp1)
 plot(Bayes_coh_exp1)
@@ -341,11 +333,11 @@ bayes_samples(Bayes_coh_exp1)
 summary(Bayes_coh_exp1, prob = 0.89)
 # pd
 p_direction(Bayes_coh_exp1, parameters = c("b_Coherence_C", "b_Condition"))
-# OR
-posterior_summary(exp(posterior_coh_exp1$`b_ConditionImagine:Coherence_C`), probs = c(0.055, 0.945))
 
 # Extract posterior samples 
 set.seed(67); posterior_coh_exp1 <- posterior_samples(Bayes_coh_exp1)
+# OR
+posterior_summary(exp(posterior_coh_exp1$`b_ConditionImagine:Coherence_C`), probs = c(0.055, 0.945))
 # Latent SD of conditions
 latent_SD(posterior_coh_exp1)
 ```
@@ -464,24 +456,26 @@ Exp2.df <- Exp2.df %>%
 # Create data file that only include estimate helping and imagine condition. This is utilizied for interaction and multilevel moderated mediation analyses
 Exp2_int <- Exp2.df %>% filter(Condition != 'Identify')
 Exp2_int$Condition <- droplevels(Exp2_int$Condition)
+
+# Models
+load('Exp2_models.Rdata')
 ```
 ## Frequentist LMMs
 ### Determine if clustering exists for story ID, participants and face ID
 ```{r}
 # Model: ranova(lmer(help.response ~ (1|participant) + (1|Story_ID) + (1|Faces_ID), data = Exp2.df))
-readRDS("VE2.rds")
+VE2
 ```
 
 ### Replication of PSE
 ```{r}
 # Parsimonious model: lmer(help.response ~ Condition + Gender_C*Face_gender_C + (dummy_img|participant) + (1|Story_ID), data = Exp2.df)
-PSE_exp2 <- readRDS("PSE_exp2.rds")
 # F-test with Kenward-Roger approximation of degress of freedom
 anova(PSE_exp2, ddf = 'Kenward-Roger')
 # Effect Size
 r.squaredGLMM(PSE_exp2)
 # Post hoc comparisons
-(posthoc_exp2 <- readRDS("posthoc_exp2.rds"))
+posthoc_exp2
 confint(posthoc_exp2)
 ```
 
@@ -502,23 +496,23 @@ bar_plot(means_exp2, palette) +
 # PSE_ttest_exp2_est <- t.test (mean ~ Condition, data = Exp2_pmeans.df, paired = T, subset = Condition != "Identify")
 
 # Imagine helping condition vs Identify media source condition
-readRDS('PSE_ttest_exp2_id.rds')
+PSE_ttest_exp2_id 
 # Imagine helping condition vs Estimate helping condition
-readRDS('PSE_ttest_exp2_est.rds')
+PSE_ttest_exp2_est
 ```
 
 ### Vividness measure by condition interactions
 ```{r}
-# Detail -- Parsimonious model: lmer (help.response~ Condition*Detail_C+Gender_C*Face_gender_C+(dummy_img+Detail_C|participant)+(1|Story_ID),data= Exp2_int)
-int_det_exp2<-readRDS("int_det_exp2.rds")
+# Detail -- Parsimonious model: lmer (help.response~ Condition*Detail_C + Gender_C*Face_gender_C + (dummy_img + Detail_C|participant) + (1|Story_ID), data = Exp2_int)
+# Confidence intervals
 confint(int_det_exp2, c("ConditionImagine", "Detail_C", "ConditionImagine:Detail_C"))
 # F-test with Kenward-Roger approximation of degress of freedom
-anova(int_det_exp2,  ddf='Kenward-Roger');summary(int_det_exp2)
+anova(int_det_exp2,  ddf = 'Kenward-Roger'); summary(int_det_exp2)
 # Effect Size
 r.squaredGLMM(int_det_exp2)
 #---------------------------------------------------------------------------------------------------------------------------
 # Coherence -- Parsimonious model: lmer (help.response ~ Condition*Coherence_C + Gender_C*Face_gender_C + (dummy_img + Coherence_C|participant) + (1|Story_ID),data = Exp2_int)
-int_coh_exp2 <- readRDS("int_coh_exp2.rds")
+# Confidence intervals
 confint(int_coh_exp2, c("ConditionImagine", "Coherence_C", "ConditionImagine:Coherence_C"))
 # F-test with Kenward-Roger approximation of degress of freedom
 anova(int_coh_exp2,  ddf = 'Kenward-Roger'); summary(int_coh_exp2)
@@ -527,7 +521,7 @@ r.squaredGLMM(int_coh_exp2)
 #-------------------------------------------------------------------------------------------------------------------------------
 # frequentist CLMMs analysis
 # Detail -- model: clmm(help.response ~ Condition*Detail_C + Gender_C*Face_gender_C + (dummy_img + Detail_C|participant) + (1|Story_ID), data = oridnal2.df, link = "logit")
-summary(ordinal_det2 <- readRDS("ordinal_det2.rds"))
+summary(ordinal_det2)
 confint(ordinal_det2, "ConditionImagine:Detail_C")
 ```
 #### Plots: Figure 3B and Figure 3D
@@ -574,7 +568,6 @@ ggplot(freqplot_coh.df2, aes(x, predicted, colour = group)) +
 #               prior(lkj(1), class = cor)), 
 #     iter = 7000, warmup = 2000, chains = 8, cores = 8, seed = 67, sample_prior = T, save_all_pars = T)
 
-Bayes_Help_exp2 <- readRDS("Bayes_Help_exp2.rds")
 # Diagnostic Checks: pp check and traceplots
 pp_check(Bayes_Help_exp2); plot(Bayes_Help_exp2)
 # Rhat and sample sizes
@@ -626,8 +619,6 @@ plot(PSE_plot_exp2)[[1]] +
 #               prior(exponential(1), class = sd),
 #               prior(lkj(1), class = cor)),
 #     iter = 7000, warmup = 2000, chains = 8, cores = 8, seed = 67, sample_prior = T, save_all_pars = T)
-
-Bayes_det_exp2 <- readRDS("Bayes_det_exp2.rds")
 # Diagnostic Checks: pp check and traceplots
 pp_check(Bayes_det_exp2)
 plot(Bayes_det_exp2)
@@ -655,8 +646,6 @@ latent_SD(posterior_det_exp2)
 #               prior(exponential(1), class = sd),
 #               prior(lkj(1), class = cor)),
 #     iter = 7000, warmup = 2000, chains = 8, cores = 8, seed = 67, sample_prior = T, save_all_pars = T)
-
-Bayes_coh_exp2 <- readRDS("Bayes_coh_exp2.rds")
 # Diagnostic Checks: pp check and traceplots
 pp_check(Bayes_coh_exp2)
 plot(Bayes_coh_exp2)
@@ -773,6 +762,9 @@ exp2$Experiment <-2
 combined.df <- rbind.data.frame(exp1, exp2)
 combined.df <- combined.df %>% mutate(dummy_img = as.numeric(Condition == 'Imagine'))
 combined.df$Experiment <- as.factor (combined.df$Experiment)
+
+# Models
+
 ```
 
 ### Bayesian CLMMs
