@@ -34,34 +34,29 @@ palette <- c("#eeaa7b", "#00b159", "#00aedb", "#F8766D", "#9590FF", "#CC9933", "
 ```
 
 # Experiment 1
-## Data 
+## Data setup
 * Data loading and setup
 ```{r}
-Exp1.df <- read.csv('../../Experiment1_N=40.csv', header  = T)
-
-# Remove deleted trials from data frame
-Exp1.df <- Exp1.df[complete.cases(Exp1.df$Condition), ]
-
-# Convert Story_ID and Condition vectors into factors and ensure Identify condition is set as the reference group
-Exp1.df$Story_ID <- as.factor(Exp1.df$Story_ID)
-Exp1.df$Condition <- as.factor(Exp1.df$Condition)
-Exp1.df$Version <- as.factor(Exp1.df$Version)
-Exp1.df$Condition <- relevel(Exp1.df$Condition, ref = 'Identify')
-
 # Data transformations 
-Exp1.df <- Exp1.df %>% 
-              mutate(
-                # Create dummy variables
-                dummy_img = as.numeric(Condition == 'Imagine'),
-                dummy_est = as.numeric(Condition == 'Estimate'),
-                dummy_ident = as.numeric(Condition == 'Identify'),
-                # Within-cluster centering
-                Coherence_C = group_center(Coherence.response, Participant),
-                Detail_C = group_center(Detail.response, Participant))
+Exp1.df <- read.csv('../../Experiment1_N=40.csv', header  = T) %>% 
+              filter(complete.cases(Condition)) %>%
+              mutate(Condition = recode(Condition, '0' = 'Identify', '1' = 'Estimate', '2' = 'Imagine'),
+                     Condition = relevel(as.factor(Condition), ref = 'Identify'),
+                     # Convert variables to factors
+                     Story_ID = as.factor(Story_ID),
+                     Version = as.factor(Version),
+                     # Create dummy variables
+                     dummy_img = as.numeric(Condition == 'Imagine'),
+                     dummy_est = as.numeric(Condition == 'Estimate'),
+                     dummy_ident = as.numeric(Condition == 'Identify'),
+                     # Within-cluster centering
+                     Coherence_C = group_center(Coherence.response, Participant),
+                     Detail_C = group_center(Detail.response, Participant))
 
 # Create a new data file that only include estimate helping and imagine helping conditions for interation analyses
-Exp1_int <- Exp1.df %>% filter(Condition != 'Identify')
-Exp1_int$Condition <- droplevels(Exp1_int$Condition)
+Exp1_int <- Exp1.df %>% 
+                    filter(Condition != 'Identify') %>%
+                    mutate(Condition = droplevels(Condition))
 
 # Models 
 load('Exp1_models.Rdata')
@@ -430,32 +425,28 @@ plot(cohplot1)[[3]] +
 ## Data setup
 * Loading data and data transformation
 ```{r}
-# Main data
-Exp2.df <- read.csv('../../Experiment2_N=40.csv', header = T)
-Exp2.df$Story_ID <- as.factor(Exp2.df$Story_ID)
-Exp2.df$Condition <- as.factor(Exp2.df$Condition)
-levels (Exp2.df$Condition) <- c('Identify', 'Estimate', 'Imagine')
+# Load data and data transformations 
+Exp2.df <- read.csv('../../Experiment2_N=40.csv', header  = T) %>% 
+              filter(complete.cases(Condition)) %>%
+              mutate(Condition = recode(Condition, '0' = 'Identify', '1' = 'Estimate', '2' = 'Imagine'),
+                     Condition = relevel(as.factor(Condition), ref = 'Identify'),
+                     # Convert variables to factors
+                     Story_ID = as.factor(Story_ID),
+                     # Create dummy variables
+                     dummy_img = as.numeric(Condition == 'Imagine'),
+                     dummy_est = as.numeric(Condition == 'Estimate'),
+                     dummy_ident = as.numeric(Condition == 'Identify'),
+                     # Effect code Gender varaibles
+                     Gender_C = ifelse(Gender == 'F', 1, -1),
+                     Face_gender_C = ifelse(Face_gender == 'F', 1, -1),
+                     # Within-cluster centering
+                     Coherence_C = group_center(Coherence.response, participant),
+                     Detail_C = group_center(Detail.response, participant))
 
-# Remove trials deleted
-Exp2.df <- Exp2.df[complete.cases(Exp2.df$Condition), ]
-
-# Data transformation 
-Exp2.df <- Exp2.df %>% 
-              mutate(
-                # Create dummy variables
-                dummy_ident = as.numeric(Condition == 'Identify'),
-                dummy_img = as.numeric(Condition == 'Imagine'),
-                dummy_est = as.numeric(Condition =='Estimate'),
-                # Effect code Gender varaibles
-                Gender_C = ifelse(Gender == 'F', 1, -1),
-                Face_gender_C = ifelse(Face_gender == 'F', 1, -1),
-                # Within-cluster center predictors for within-participant analyses
-                Coherence_C = group_center(Coherence.response,participant),
-                Detail_C = group_center(Detail.response,participant))
-
-# Create data file that only include estimate helping and imagine condition. This is utilizied for interaction and multilevel moderated mediation analyses
-Exp2_int <- Exp2.df %>% filter(Condition != 'Identify')
-Exp2_int$Condition <- droplevels(Exp2_int$Condition)
+# Create a new data file that only include estimate helping and imagine helping conditions for interation analyses
+Exp2_int <- Exp2.df %>% 
+                    filter(Condition != 'Identify') %>%
+                    mutate(Condition = droplevels(Condition))
 
 # Models
 load('Exp2_models.Rdata')
