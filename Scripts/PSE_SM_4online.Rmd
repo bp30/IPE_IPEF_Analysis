@@ -38,25 +38,28 @@ palette <- c("#eeaa7b", "#00b159", "#00aedb", "#F8766D", "#9590FF", "#CC9933", "
 * Data loading and setup
 ```{r}
 # Data transformations 
-Exp1.df <- read.csv('../../Experiment1_N=40.csv', header  = T) %>% 
-              filter(complete.cases(Condition)) %>%
-              mutate(Condition = recode(Condition, '0' = 'Identify', '1' = 'Estimate', '2' = 'Imagine'),
-                     Condition = relevel(as.factor(Condition), ref = 'Identify'),
-                     # Convert variables to factors
-                     Story_ID = as.factor(Story_ID),
-                     Version = as.factor(Version),
-                     # Create dummy variables
-                     dummy_img = as.numeric(Condition == 'Imagine'),
-                     dummy_est = as.numeric(Condition == 'Estimate'),
-                     dummy_ident = as.numeric(Condition == 'Identify'),
-                     # Within-cluster centering
-                     Coherence_C = group_center(Coherence.response, Participant),
-                     Detail_C = group_center(Detail.response, Participant))
+# Exp1.df <- read.csv('../../Experiment1_N=40.csv', header = T) %>%
+#               filter(complete.cases(Condition)) %>%
+#               mutate(Condition = recode(Condition, '0' = 'Identify', '1' = 'Estimate', '2' = 'Imagine'),
+#                      Condition = relevel(as.factor(Condition), ref = 'Identify'),
+#                      # Convert variables to factors
+#                      Story_ID = as.factor(Story_ID),
+#                      Version = as.factor(Version),
+#                      # Create dummy variables
+#                      dummy_img = as.numeric(Condition == 'Imagine'),
+#                      dummy_est = as.numeric(Condition == 'Estimate'),
+#                      dummy_ident = as.numeric(Condition == 'Identify'),
+#                      # Within-cluster centering
+#                      Coherence_C = group_center(Coherence.response, Participant),
+#                      Detail_C = group_center(Detail.response, Participant))
 
 # Create a new data file that only include estimate helping and imagine helping conditions for interation analyses
-Exp1_int <- Exp1.df %>% 
-                    filter(Condition != 'Identify') %>%
-                    mutate(Condition = droplevels(Condition))
+# Exp1_int <- Exp1.df %>% 
+#                     filter(Condition != 'Identify') %>%
+#                     mutate(Condition = droplevels(Condition))
+
+# Data for t-tests
+# Exp1_pmeans.df <- psych::describeBy(Exp1.df$help.response, list(Exp1.df$Participant, Exp1.df$Condition), mat = T)
 
 # Models 
 load('Exp1_models.Rdata')
@@ -72,23 +75,12 @@ VE1
 ```{r}
 # Detail -- Model:lmer(Detail.response ~ Version + (1|Participant) + (1|Story_ID), data = Exp1.df)
 anova(Vdiff_det, ddf = 'Kenward-Roger')
-
-Detint1 <- lmer(Detail.response ~ Version * Condition + (1|Participant) + (1|Story_ID), data = Exp1.df)
-anova(Detint1, ddf = 'Kenward-Roger')
 #-----------------------------------------------------------------------------------------------------------------------
 # Coherence -- Model:lmer(Coherence.response ~ Version + (1|Participant) + (1|Story_ID), data = Exp1.df)
 anova(Vdiff_coh, ddf = 'Kenward-Roger')
-
-Cohint1 <- lmer(Coherence.response ~ Version * Condition + (1|Participant) + (1|Story_ID), data = Exp1.df)
-anova(Cohint1, ddf = 'Kenward-Roger')
-summary(Cohint1)
 #-----------------------------------------------------------------------------------------------------------------------
 # Willingness to help -- Model:lmer(help.response ~ Version + (1|Participant) + (1|Story_ID), data = Exp1.df)
 anova(Vdiff_help, ddf = 'Kenward-Roger')
-
-helpint1 <- lmer(help.response ~ Version * Condition + (1|Participant) + (1|Story_ID), data = Exp1.df)
-anova(helpint1, ddf = 'Kenward-Roger')
-summary(helpint1)
 ```
 
 ### Replication of PSE
@@ -99,10 +91,10 @@ summary(helpint1)
 # Models:
 # PSE_ttest_exp1_id <- t.test (mean ~ Condition, data = Exp1_pmeans.df, paired = T, subset = Condition != "Estimate")
 # PSE_ttest_exp1_est <- t.test (mean ~ Condition, data = Exp1_pmeans.df, paired = T, subset = Condition != "Identify")
-PSE_ttest_exp1_control <- t.test (mean ~ group2, data = Exp1_pmeans.df, paired = T, subset = group2 != "Imagine")
+# PSE_ttest_exp1_control <- t.test (mean ~ group2, data = Exp1_pmeans.df, paired = T, subset = group2 != "Imagine")
 
-Exp1_pmeans.df <- psych::describeBy(Exp1.df$help.response, list(Exp1.df$Participant, Exp1.df$Condition), mat = T)
-means1 <- psych::describeBy(Exp1_pmeans.df$mean, Exp1_pmeans.df$group2, mat = T)
+# Means: ttest_means_exp1 <- psych::describeBy(Exp1_pmeans.df$mean, Exp1_pmeans.df$group2, mat = T)
+ttest_means_exp1
 
 # Imagine helping condition vs Identify media source condition
 PSE_ttest_exp1_id
@@ -127,7 +119,6 @@ confint(posthoc_exp1)
 #### Plots: Figure 1A
 ```{r}
 means_exp1 <- data.frame(posthoc_exp1$emmeans)
-bar
 colnames(means_exp1)[1] <- "Conditions"
 bar_plot(means_exp1, palette) +
   xlab("Condition") + 
@@ -170,14 +161,14 @@ ggplot(freqplot_det.df1, aes(x, predicted, colour = group)) +
   geom_line() +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group, color = NULL), alpha = .4) +
   theme_classic() +
-  labs(title = "", x = "Scene Detail", y = "Willingness to help", fill = "Condition") +
+  labs(title = "", x = "Detail", y = "Willingness to help", fill = "Condition") +
   scale_color_manual(values = c(palette[2], palette[3]), 
                      labels = c("Estimate Helping", "Imagine Helping")) +
   scale_fill_manual(values = c(palette[2], palette[3]), 
                     labels = c("Estimate Helping", "Imagine Helping")) +
   coord_cartesian(ylim = c(1, 7)) + 
   expand_limits(y = c(1, 7)) + 
-  scale_y_discrete(limits=c(1,2,3,4,5,6,7))
+  scale_y_discrete(limits = c(1, 2, 3, 4, 5, 6, 7))
 #------------------------------------------------------------------------------------------------------------------------
 # Coherence: Figure 3C
 freqplot_coh.df1 <- ggpredict(int_coh_exp1, c("Coherence_C[-4,0,4]", "Condition"))
@@ -185,59 +176,59 @@ ggplot(freqplot_coh.df1, aes(x, predicted, colour = group)) +
   geom_line() +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group, color = NULL), alpha = .4) +
   theme_classic() +
-  labs(title = "",x = "Scene Coherence", y = "Willingness to help", fill = "Condition") +
+  labs(title = "",x = "Coherence", y = "Willingness to help", fill = "Condition") +
   scale_color_manual(values = c(palette[2], palette[3]), 
                      labels = c("Estimate Helping", "Imagine Helping")) +
   scale_fill_manual(values = c(palette[2], palette[3]), 
                     labels = c("Estimate Helping", "Imagine Helping")) +
   coord_cartesian(ylim = c(1, 7)) + 
   expand_limits(y = c(1, 7)) + 
-  scale_y_discrete(limits=c(1,2,3,4,5,6,7))
+  scale_y_discrete(limits = c(1, 2, 3, 4, 5, 6, 7))
 ```
 ## Bayesian CLMMs
 ### Assess differences between versions
 ```{r}
 # Detail -- model: 
- Vdiff_det_bayes <- brm(data = Exp1_int, family = cumulative("logit"), 
-                        Detail.response ~ Version * Condition + (1|Participant) + (Version|Story_ID),
-                           prior = c(prior(normal(0,1), class = b), 
-                                     prior(normal(0,1.2), class = Intercept),
-                                     prior(exponential(1), class = sd)),
-                        iter = 7000, warmup = 2000,chains = 8, cores = 8, seed = 67, sample_prior = T, save_all_pars = T)
+# Vdiff_det_bayes <- brm(data = Exp1_int, family = cumulative("logit"), 
+#                        Detail.response ~ Version + (1|Participant) + (Version|Story_ID),
+#                           prior = c(prior(normal(0,1), class = b), 
+#                                     prior(normal(0,1.2), class = Intercept),
+#                                     prior(exponential(1), class = sd)),
+#                        iter = 7000, warmup = 2000,chains = 8, cores = 8, seed = 67, sample_prior = T, save_all_pars = T)
 # Summary 
 summary(Vdiff_det_bayes, prob = 0.89)
 # BF01
-(BF01_detV <- hypothesis(Vdiff_det_bayes, hypothesis = c("Version2:ConditionImagine = 0"),alpha = 0.055, seed = 67)); plot(BF01_detV)
+(BF01_detV <- hypothesis(Vdiff_det_bayes, hypothesis = c("Version2 = 0"),alpha = 0.055, seed = 67)); plot(BF01_detV)
 # pd
 colMeans(BF01_detV$samples < 0)
 #------------------------------------------------------------------------------------------------------------------------
 # Coherence -- model: 
- Vdiff_coh_bayes <- brm(data = Exp1_int, family = cumulative("logit"), 
-                        Coherence.response ~ Version * Condition + (1|Participant) + (Version|Story_ID),
-                           prior = c(prior(normal(0,1), class = b), 
-                                     prior(normal(0,1.2), class = Intercept),
-                                     prior(exponential(1), class = sd),
-                                     prior(lkj(1), class = cor)),
-                        iter = 7000, warmup = 2000, chains = 8, cores = 8, seed = 67, sample_prior = T, save_all_pars = T)
+# Vdiff_coh_bayes <- brm(data = Exp1_int, family = cumulative("logit"), 
+#                        Coherence.response ~ Version * Condition + (1|Participant) + (Version|Story_ID),
+#                           prior = c(prior(normal(0,1), class = b), 
+#                                     prior(normal(0,1.2), class = Intercept),
+#                                     prior(exponential(1), class = sd),
+#                                     prior(lkj(1), class = cor)),
+#                        iter = 7000, warmup = 2000, chains = 8, cores = 8, seed = 67, sample_prior = T, save_all_pars = T)
 # Summary 
 summary(Vdiff_coh_bayes, prob = 0.89)
 # BF01
-(BF01_cohV <- hypothesis(Vdiff_coh_bayes, hypothesis = c("Version2:ConditionImagine = 0"), alpha = 0.055, seed = 67)); plot(BF01_cohV)
+(BF01_cohV <- hypothesis(Vdiff_coh_bayes, hypothesis = c("Version2 = 0"), alpha = 0.055, seed = 67)); plot(BF01_cohV)
 # pd
 colMeans(BF01_cohV$samples < 0)
 #------------------------------------------------------------------------------------------------------------------------
 # Help -- model: 
- Vdiff_help_bayes <- brm(data = Exp1.df, family = cumulative("logit"), 
-                        help.response ~ Version * Condition + (1|Participant) + (Version|Story_ID),
-                           prior = c(prior(normal(0,1), class = b), 
-                                    prior(normal(0,1.2), class = Intercept),
-                                  prior(exponential(1), class = sd),
-                                    prior(lkj(1), class = cor)), 
-                  iter = 7000, warmup = 2000,chains = 8, cores = 8, seed = 67, sample_prior = T, save_all_pars = T)
+#  Vdiff_help_bayes <- brm(data = Exp1.df, family = cumulative("logit"), 
+#                         help.response ~ Version * Condition + (1|Participant) + (Version|Story_ID),
+#                            prior = c(prior(normal(0,1), class = b), 
+#                                     prior(normal(0,1.2), class = Intercept),
+#                                   prior(exponential(1), class = sd),
+#                                     prior(lkj(1), class = cor)), 
+#                   iter = 7000, warmup = 2000,chains = 8, cores = 8, seed = 67, sample_prior = T, save_all_pars = T)
 # Summary 
 summary(Vdiff_help_bayes, prob = 0.89)
 # BF01
-(BF01_helpV <- hypothesis(Vdiff_help_bayes, hypothesis = c("Version2 = 0"), alpha = 0.055, seed = 67))
+(BF01_helpV <- hypothesis(Vdiff_help_bayes, hypothesis = c("Version2 = 0"), alpha = 0.055, seed = 67)); plot(BF01_helpV)
 # pd
 colMeans(BF01_helpV$samples > 0)
 ```
@@ -434,7 +425,7 @@ plot(detplot1)[[3]] +
   scale_fill_manual(values = c(palette[2], palette[3]),
                     labels = c("Estimate Helping", "Imagine Helping")) +
   scale_color_manual(values = c(palette[2], palette[3]),
-                     labels = c("Estimate Helping", "Imagine Helping"))
+                     labels = c("Estimate Helping", "Imagine Helping")) 
 #--------------------------------------------------------------------------------------------------------------------------
 # Predicted linear trend overlay compression of scale constraint: Coherence (Figure 6C)
 cohplot1 <- conditional_effects(Bayes_coh_exp1)
@@ -447,8 +438,9 @@ plot(cohplot1)[[3]] +
   scale_fill_manual(values = c(palette[2], palette[3]),
                     labels = c("Estimate Helping", "Imagine Helping")) +
   scale_color_manual(values = c(palette[2], palette[3]),
-                     labels = c("Estimate Helping", "Imagine Helping"))
-```
+                     labels = c("Estimate Helping", "Imagine Helping")) +
+  theme(legend.position = 'None')
+``` 
 
 
 
@@ -457,27 +449,30 @@ plot(cohplot1)[[3]] +
 * Loading data and data transformation
 ```{r}
 # Load data and data transformations 
-Exp2.df <- read.csv('../../Experiment2_N=40.csv', header = T) %>% 
-              filter(complete.cases(Condition)) %>%
-              mutate(Condition = recode(Condition, '0' = 'Identify', '1' = 'Estimate', '2' = 'Imagine'),
-                     Condition = relevel(as.factor(Condition), ref = 'Identify'),
-                     # Convert variables to factors
-                     Story_ID = as.factor(Story_ID),
-                     # Create dummy variables
-                     dummy_img = as.numeric(Condition == 'Imagine'),
-                     dummy_est = as.numeric(Condition == 'Estimate'),
-                     dummy_ident = as.numeric(Condition == 'Identify'),
-                     # Effect code Gender varaibles
-                     Gender_C = ifelse(Gender == 'F', 1, -1),
-                     Face_gender_C = ifelse(Face_gender == 'F', 1, -1),
-                     # Within-cluster centering
-                     Coherence_C = group_center(Coherence.response, participant),
-                     Detail_C = group_center(Detail.response, participant))
+# Exp2.df <- read.csv('../../Experiment2_N=40.csv', header = T) %>% 
+#               filter(complete.cases(Condition)) %>%
+#               mutate(Condition = recode(Condition, '0' = 'Identify', '1' = 'Estimate', '2' = 'Imagine'),
+#                      Condition = relevel(as.factor(Condition), ref = 'Identify'),
+#                      # Convert variables to factors
+#                      Story_ID = as.factor(Story_ID),
+#                      # Create dummy variables
+#                      dummy_img = as.numeric(Condition == 'Imagine'),
+#                      dummy_est = as.numeric(Condition == 'Estimate'),
+#                      dummy_ident = as.numeric(Condition == 'Identify'),
+#                      # Effect code Gender varaibles
+#                      Gender_C = ifelse(Gender == 'F', 1, -1),
+#                      Face_gender_C = ifelse(Face_gender == 'F', 1, -1),
+#                      # Within-cluster centering
+#                      Coherence_C = group_center(Coherence.response, participant),
+#                      Detail_C = group_center(Detail.response, participant))
 
 # Create a new data file that only include estimate helping and imagine helping conditions for interation analyses
-Exp2_int <- Exp2.df %>% 
-                    filter(Condition != 'Identify') %>%
-                    mutate(Condition = droplevels(Condition))
+# Exp2_int <- Exp2.df %>% 
+#                     filter(Condition != 'Identify') %>%
+#                     mutate(Condition = droplevels(Condition))
+
+# Data for t-tests
+# Exp2_pmeans.df <- psych::describeBy(Exp2.df$help.response, list(Exp2.df$participant, Exp2.df$Condition), mat = T)
 
 # Models
 load('Exp2_models.Rdata')
@@ -497,12 +492,10 @@ VE2
 # Models:
 # PSE_ttest_exp2_id <- t.test (mean ~ Condition, data = Exp2_pmeans.df, paired = T, subset = Condition != "Estimate")
 # PSE_ttest_exp2_est <- t.test (mean ~ Condition, data = Exp2_pmeans.df, paired = T, subset = Condition != "Identify")
-PSE_ttest_exp2_control <- t.test (mean ~ group2, data = Exp2_pmeans.df, paired = T, subset = group2 != "Imagine")
+# PSE_ttest_exp2_control <- t.test (mean ~ group2, data = Exp2_pmeans.df, paired = T, subset = group2 != "Imagine")
 
-
-Exp2_pmeans.df <- psych::describeBy(Exp2.df$help.response, list(Exp2.df$participant, Exp2.df$Condition), mat = T)
-means2 <- psych::describeBy(Exp2_pmeans.df$mean, Exp2_pmeans.df$group2, mat = T)
-
+# Means: ttest_means_exp2 <- psych::describeBy(Exp2_pmeans.df$mean, Exp2_pmeans.df$group2, mat = T)
+ttest_means_exp2
 
 # Imagine helping condition vs Identify media source condition
 PSE_ttest_exp2_id 
@@ -540,7 +533,7 @@ bar_plot(means_exp2, palette) +
 # Confidence intervals
 confint(int_det_exp2, c("ConditionImagine", "Detail_C", "ConditionImagine:Detail_C"))
 # F-test with Kenward-Roger approximation of degress of freedom
-anova(int_det_exp2,  ddf = 'Kenward-Roger'); summary(int_det_exp2)
+anova(int_det_exp2, ddf = 'Kenward-Roger'); summary(int_det_exp2)
 # Effect Size
 r.squaredGLMM(int_det_exp2)
 #---------------------------------------------------------------------------------------------------------------------------
@@ -586,9 +579,6 @@ ggplot(freqplot_coh.df2, aes(x, predicted, colour = group)) +
 
 
 ## Bayes CLMMs
-
-
-
 ### Replication of PSE
 ```{r}
 # Model:
@@ -693,7 +683,7 @@ summary(Bayes_coh_exp2, prob = 0.89)
 p_direction(Bayes_coh_exp2, parameters = c("b_Coherence_C", "b_Condition"))
 # Extract posterior samples 
 set.seed(67); posterior_coh_exp2 <- posterior_samples(Bayes_coh_exp2)
-.# OR
+# OR
 posterior_summary(exp(posterior_coh_exp2$`b_ConditionImagine:Coherence_C`), probs = c(0.055, 0.945))
 # Latent SD of conditions
 latent_SD(posterior_coh_exp2)
@@ -710,7 +700,7 @@ violin_det2 +
   labs(x = "Condition", y = "logit") +
   theme(legend.position = 'none') +
   ylim(-0.2, 1.5) +
-  scale_x_discrete(labels = c("Imagine Helping","Estimate Helping")) +
+  scale_x_discrete(limits = c("Imagine Helping", "Estimate Helping")) +
   scale_fill_manual(values = c(palette[2], palette[3])) +
   scale_color_manual(values = c(palette[2], palette[3]))
 
@@ -729,7 +719,7 @@ violin_coh2 <- violin_bayes(plot_coh2, HDI_range = c(0.055, 0.945))[[1]]
 violin_coh2 +
   labs(x = "Condition", y = "logit") +
   theme(legend.position = 'none') +
-  scale_x_discrete(labels = c("Imagine Helping","Estimate Helping")) +
+  scale_x_discrete(limits = c("Imagine Helping","Estimate Helping")) +
   ylim(-0.2, 1.5) +
   scale_fill_manual(values = c(palette[2], palette[3])) +
   scale_color_manual(values = c(palette[2], palette[3]))
@@ -764,7 +754,7 @@ plot(detplot2)[[3]] +
   scale_fill_manual(values = c(palette[2], palette[3]),
                     labels = c("Estimate Helping", "Imagine Helping")) +
   scale_color_manual(values = c(palette[2], palette[3]),
-                     labels = c("Estimate Helping", "Imagine Helping"))
+                     labels = c("Estimate Helping", "Imagine Helping")) 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 # Predicted linear trend: Coherence (Figure 6D)
 cohplot2 <- conditional_effects(Bayes_coh_exp2)
@@ -787,24 +777,25 @@ plot(cohplot2)[[3]] +
 
 
 
-## Bayesian CLMMs: Combined dataset
-### Data set up 
+# Bayesian CLMMs: Combined dataset
+## Data set up 
 ```{r}
-exp1 <- Exp1_int %>% select("Participant", "Story_ID", "Condition", "help.response", "Detail_C", "Coherence_C")
-exp1$Experiment <- 1
-exp2 <- Exp2_int %>% select(Participant="participant", "Story_ID", "Condition", "help.response", "Detail_C","Coherence_C")
-exp2$Experiment <- 2
-
-combined.df <- rbind.data.frame(exp1, exp2)
-combined.df <- combined.df %>% mutate(dummy_img = as.numeric(Condition == 'Imagine'))
-combined.df$Experiment <- as.factor (combined.df$Experiment)
+# Combine two datasets
+# exp1 <- Exp1_int %>% select("Participant", "Story_ID", "Condition", "help.response", "Detail_C", "Coherence_C")
+# exp1$Experiment <- 1
+# exp2 <- Exp2_int %>% select(Participant="participant", "Story_ID", "Condition", "help.response", "Detail_C","Coherence_C")
+# exp2$Experiment <- 2
+# 
+# combined.df <- rbind.data.frame(exp1, exp2)
+# combined.df <- combined.df %>% mutate(dummy_img = as.numeric(Condition == 'Imagine'))
+# combined.df$Experiment <- as.factor (combined.df$Experiment)
 
 # Models
 load("Combine_models.Rdata")
 ```
 
-### Bayesian CLMMs
-#### 3-way interactions
+## Bayesian CLMMs
+### 3-way interactions
 * See vividness by condition effect differ by experiment
 ```{r}
 # Detail -- Model:
@@ -841,7 +832,6 @@ colMeans(BF01_det_3way$samples > 0/4e4)
 #               prior(lkj(1), class = cor)),
 #     iter = 7000, warmup = 2000, chains = 8, cores = 8, seed = 67, sample_prior = T, save_all_pars = T)
 
-Bayes_coh_3way <- readRDS("Bayes_coh_3way.rds")
 # Diagnostic Checks: pp check and traceplots
 pp_check(Bayes_coh_3way)
 plot(Bayes_coh_3way)
@@ -858,7 +848,7 @@ colMeans(BF01_coh_3way$samples > 0/4e4)
 
 
 
-#### Condition by Vividness measures interactions
+### Condition by Vividness measures interactions
 ```{r}
 # Detail -- Model:
 # brm(data = combined.df, family = cumulative("logit"), 
@@ -870,7 +860,6 @@ colMeans(BF01_coh_3way$samples > 0/4e4)
 #               prior(lkj(1), class = cor)),
 #     iter = 7000, warmup = 2000, chains = 8, cores = 8, seed = 67, sample_prior = T, save_all_pars = T)
 
-Bayes_det_combine <- readRDS("Bayes_det_combine.rds")
 # Diagnostic Checks: pp check and traceplots
 pp_check(Bayes_det_combine)
 plot(Bayes_det_combine)
@@ -899,7 +888,6 @@ latent_SD(Bayes_det_combine)
 #               prior(lkj(1), class = cor)),
 #     iter = 7000, warmup = 2000, chains = 8, cores = 8, seed = 67, sample_prior = T, save_all_pars = T)
 
-Bayes_coh_combine <- readRDS("Bayes_coh_combine.rds")
 # Diagnostic Checks: pp check and traceplots
 pp_check(Bayes_coh_combine)
 plot(Bayes_coh_combine)
@@ -918,7 +906,7 @@ set.seed(67); posterior_coh_combine <- posterior_samples(Bayes_coh_combine)
 # Latent SD of conditions
 latent_SD(posterior_coh_combine)
 ```
-##### Plots: Figure 5
+#### Plots: Figure 5
 ```{r}
 # Violin plots -- Detail and Coherence interaction effects
 plot_int3 <- cbind.data.frame("Detail" = posterior_det_combine$`b_ConditionImagine:Detail_C`,
@@ -927,8 +915,8 @@ plot_int3 <- plot_int3 %>% gather("Detail", "Coherence", key = Condition, value 
 violin_int3 <- violin_bayes(plot_int3, HDI_range = c(0.055, 0.945))[[1]]
 violin_int3 +
   labs(x = "Vividness by Condition Interactions", y = "logit")+ 
-  theme(legend.position = "none") +
-  ylim(-0.5, 1.5) +
+  theme(legend.position = "None") +
+  ylim(-0.5, 1) +
   scale_fill_manual(values=c(palette[6], palette[7])) +
   scale_color_manual(values = c(palette[6], palette[7]))
 ```
