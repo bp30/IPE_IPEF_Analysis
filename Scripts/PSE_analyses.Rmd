@@ -23,7 +23,7 @@ rm(list = ls()); gc()
 ```{r setup, include = FALSE}
 # Load packages
 if (!require(pacman)) install.packages('pacman')
-pacman::p_load(sjstats, sjPlot, lme4, ordinal,lmerTest, emmeans, ggeffects, tidyverse, MuMIn, brms, bayestestR)
+pacman::p_load(sjstats, sjPlot, lme4, ordinal,lmerTest, emmeans, ggeffects, tidyverse, MuMIn, brms, bayestestR, gridExtra)
 
 # Source custom functions
 source("LMM_scripts.R")
@@ -107,12 +107,12 @@ PSE_ttest_exp1_control
 #### Frequentist LMM
 ```{r}
 # Parsimonious model: lmer(help.response ~ Condition + (dummy_img + dummy_est|Participant) + (1|Story_ID), data = Exp1.df)
-# F-test with Kenward-Roger approximation of degress of freedom
+# F-test with Kenward-Roger approximation of degrees of freedom
 anova(PSE_exp1, ddf = 'Kenward-Roger')
 # Effect Size
 r.squaredGLMM(PSE_exp1)
 # Post hoc comparisons
-posthoc_exp1
+posthoc_exp1 <- emmeans(PSE_exp1, pairwise ~ Condition, adjust = 'bonferroni')
 confint(posthoc_exp1)
 ```
 
@@ -156,34 +156,40 @@ confint(ordinal_det1, "ConditionImagine:Detail_C")
 #### Plots: Figure 3A and Figure 3C
 ```{r}
 # Detail: Figure 3A
-freqplot_det.df1 <- ggpredict(int_det_exp1, c("Detail_C[-4,0,4]", "Condition"))
-ggplot(freqplot_det.df1, aes(x, predicted, colour = group)) +
-  geom_line() +
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group, color = NULL), alpha = .4) +
-  theme_classic() +
-  labs(title = "", x = "Detail", y = "Willingness to help", fill = "Condition") +
-  scale_color_manual(values = c(palette[2], palette[3]), 
-                     labels = c("Estimate Helping", "Imagine Helping")) +
-  scale_fill_manual(values = c(palette[2], palette[3]), 
-                    labels = c("Estimate Helping", "Imagine Helping")) +
-  coord_cartesian(ylim = c(1, 7)) + 
-  expand_limits(y = c(1, 7)) + 
-  scale_y_discrete(limits = c(1, 2, 3, 4, 5, 6, 7))
+freqplot_det1 <- ggpredict(int_det_exp1, c("Detail_C[-4,0,4]", "Condition")) %>% 
+  ggplot(aes(x, predicted, colour = group)) +
+         geom_line() +
+         geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group, color = NULL), alpha = .4) +
+         theme_classic() +
+         labs(title = "", x = "Detail", y = "Willingness to help", fill = "Condition") +
+         scale_color_manual(values = c(palette[2], palette[3]), 
+                            labels = c("Estimate Helping", "Imagine Helping")) +
+         scale_fill_manual(values = c(palette[2], palette[3]), 
+                           labels = c("Estimate Helping", "Imagine Helping")) +
+         coord_cartesian(ylim = c(1, 7)) + 
+         expand_limits(y = c(1, 7)) + 
+         scale_y_discrete(limits = c(1, 2, 3, 4, 5, 6, 7)) + 
+         theme(legend.position = 'None', text = element_text(size = 15),
+               axis.text.x = element_text(size = 12))
 #------------------------------------------------------------------------------------------------------------------------
 # Coherence: Figure 3C
-freqplot_coh.df1 <- ggpredict(int_coh_exp1, c("Coherence_C[-4,0,4]", "Condition"))
-ggplot(freqplot_coh.df1, aes(x, predicted, colour = group)) +
-  geom_line() +
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group, color = NULL), alpha = .4) +
-  theme_classic() +
-  labs(title = "",x = "Coherence", y = "Willingness to help", fill = "Condition") +
-  scale_color_manual(values = c(palette[2], palette[3]), 
-                     labels = c("Estimate Helping", "Imagine Helping")) +
-  scale_fill_manual(values = c(palette[2], palette[3]), 
-                    labels = c("Estimate Helping", "Imagine Helping")) +
-  coord_cartesian(ylim = c(1, 7)) + 
-  expand_limits(y = c(1, 7)) + 
-  scale_y_discrete(limits = c(1, 2, 3, 4, 5, 6, 7))
+freqplot_coh1 <- ggpredict(int_coh_exp1, c("Coherence_C[-4,0,4]", "Condition")) %>% 
+  ggplot(aes(x, predicted, colour = group)) +
+        geom_line() +
+        geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group, color = NULL), alpha = .4) +
+        theme_classic() +
+        labs(title = "",x = "Coherence", y = "Willingness to help", fill = "Condition") +
+        scale_color_manual(values = c(palette[2], palette[3]), 
+                           labels = c("Estimate Helping", "Imagine Helping")) +
+        scale_fill_manual(values = c(palette[2], palette[3]), 
+                          labels = c("Estimate Helping", "Imagine Helping")) +
+        coord_cartesian(ylim = c(1, 7)) + 
+        expand_limits(y = c(1, 7)) + 
+        scale_y_discrete(limits = c(1, 2, 3, 4, 5, 6, 7)) + 
+        theme(legend.position = 'None', text = element_text(size = 15),
+              axis.text.x = element_text(size = 12)) + 
+        labs(y = "") 
+
 ```
 ## Bayesian CLMMs
 ### Assess differences between versions
@@ -273,25 +279,29 @@ latent_SD(posterior_exp1)
 #### Plots: Figure 2A and Figure 2C
 ```{r}
 # Violin plots: Figure 2A
-PSE_plots1 <- ER_help1$samples
-colnames(PSE_plots1) <- c("Identify", "Estimate")
-PSE_plots1 <- PSE_plots1 %>% gather("Identify", "Estimate", key = Condition, value = Posterior)
-violin_PSE1 <- violin_bayes(PSE_plots1, HDI_range = c(0.055, 0.945))[[1]]
-violin_PSE1 +
+PSE_plot1 <- ER_help1$samples
+colnames(PSE_plot1) <- c("Identify", "Estimate")
+PSE_plot1 <- PSE_plot1 %>% gather("Identify", "Estimate", key = Condition, value = Posterior)
+violin_PSE1 <- violin_bayes(PSE_plot1, HDI_range = c(0.055, 0.945))[[1]] +
   labs(x = "Condition Contrasts", y = "logit") +
-  theme(legend.position = "none") +
+  theme(legend.position = "none",
+        text = element_text (size = 20),
+        axis.text.x = element_text(size = 16)) +
   scale_x_discrete(labels = c( "Imagine Helping > Estimate Helping", "Imagine Helping > Identify Media Source")) +
   scale_fill_manual(values = c(palette[4], palette[5])) +
   scale_color_manual(values = c(palette[4], palette[5]))
 #-----------------------------------------------------------------------------------------------------------------------
 # Predicted probability in each response category: Figure 2C
 PSE_plot_exp1 <- conditional_effects(Bayes_Help_exp1, categorical = T)
-plot(PSE_plot_exp1)[[1]] +
+Prob_plot1 <- plot(PSE_plot_exp1)[[1]] +
   scale_x_discrete(labels = c("Identify Media Source", "Estimate Helping", "Imagine Helping")) +
   theme_classic() +
   xlab("Conditions") +
   ylim (0, 0.45) +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        text = element_text(size = 20))
+
+grid.arrange(violin_PSE1 + ggtitle('a'), Prob_plot1 + ggtitle('b'), nrow = 2)
 ```
 
 
@@ -361,17 +371,18 @@ latent_SD(posterior_coh_exp1)
 ```{r}
 # Violin plots -- Detail: Separate Conditions (Figure 4A)
 det_posterior1 <- cbind.data.frame("Estimate Helping" = posterior_det_exp1$b_Detail_C, 
-                                   "Imagine Helping" = posterior_det_exp1$b_Detail_C + posterior_det_exp1$`b_ConditionImagine:Detail_C`)
-plot_det1 <- det_posterior1 %>% gather("Estimate Helping", "Imagine Helping", 
+                                   "Imagine Helping" = posterior_det_exp1$b_Detail_C + posterior_det_exp1$`b_ConditionImagine:Detail_C`,
+                                   "Detail x Condition" = posterior_det_exp1$`b_ConditionImagine:Detail_C`)
+plot_det1 <- det_posterior1 %>% gather("Estimate Helping", "Imagine Helping", "Detail x Condition",
                                       key = Condition, value = Posterior)
-violin_det1 <- violin_bayes(plot_det1, HDI_range = c(0.055, 0.945))[[1]]
-violin_det1 +
-  labs(x = "Condition", y = "logit") +
-  theme(legend.position = 'none') +
-  ylim(-0.2, 1.5) +
-  scale_x_discrete(limits = c("Imagine Helping", "Estimate Helping")) +
-  scale_fill_manual(values = c(palette[2], palette[3])) +
-  scale_color_manual(values = c(palette[2], palette[3]))
+violin_det1 <- violin_bayes(plot_det1, HDI_range = c(0.055, 0.945))[[1]] +
+  labs(x = "", y = "logit") +
+  theme(legend.position = 'none',
+        text = element_text(size = 15)) +
+  ylim(-0.4, 1) +
+  scale_x_discrete(limits = c("Imagine Helping", "Estimate Helping", "Detail x Condition")) +
+  scale_fill_manual(values = c(palette[7], palette[3], palette[2])) +
+  scale_color_manual(values = c(palette[7], palette[3], palette[2]))
 
 # Summary
 violin_bayes(plot_det1, HDI_range = c(0.055, 0.945))[[2]]
@@ -381,18 +392,19 @@ p_direction(det_posterior1)
 posterior_summary(exp(det_posterior1), probs = c(0.055, 0.945))
 #--------------------------------------------------------------------------------------------------------------------------
 # Violin plots -- Coherence: Separate Conditions (Figure 4C)
-coh_posterior1 <- cbind.data.frame('Estimate Helping' = posterior_coh_exp1$b_Coherence_C,
-                                   "Imagine Helping" = posterior_coh_exp1$b_Coherence_C + posterior_coh_exp1$`b_ConditionImagine:Coherence_C`)
-plot_coh1 <- coh_posterior1 %>% gather("Estimate Helping", "Imagine Helping", 
+coh_posterior1 <- cbind.data.frame("Imagine Helping" = posterior_coh_exp1$b_Coherence_C + posterior_coh_exp1$`b_ConditionImagine:Coherence_C`,
+                                   "Estimate Helping" = posterior_coh_exp1$b_Coherence_C,
+                                   "Coherence x Condition" = posterior_coh_exp1$`b_ConditionImagine:Coherence_C`)
+plot_coh1 <- coh_posterior1 %>% gather("Imagine Helping","Estimate Helping", "Coherence x Condition",
                                        key = Condition, value = Posterior)
-violin_coh1 <- violin_bayes(plot_coh1,HDI_range = c(0.055, 0.945))[[1]]
-violin_coh1 +
-  labs(x = "Condition", y = "logit") +
-  theme(legend.position = 'none') +
-  ylim(-0.2, 1.5) +
-  scale_x_discrete(limits = c("Imagine Helping", "Estimate Helping")) +
-  scale_fill_manual(values = c(palette[2], palette[3])) +
-  scale_color_manual(values = c(palette[2], palette[3])) 
+violin_coh1 <- violin_bayes(plot_coh1,HDI_range = c(0.055, 0.945))[[1]] +
+  labs(x = "", y = "logit") +
+  theme(legend.position = 'none', 
+        text = element_text(size = 15)) +
+  ylim(-0.4, 1.5) +
+  scale_x_discrete(limits = c("Imagine Helping", "Estimate Helping", "Coherence x Condition")) +
+  scale_fill_manual(values = c(palette[6], palette[3], palette[2])) +
+  scale_color_manual(values = c(palette[6], palette[3], palette[2])) 
 
 # Summary
 violin_bayes(plot_coh1,CI_range = c(0.055, 0.945))[[2]]
@@ -400,38 +412,35 @@ violin_bayes(plot_coh1,CI_range = c(0.055, 0.945))[[2]]
 p_direction(coh_posterior1)
 # OR
 posterior_summary(exp(coh_posterior1), probs = c(0.055, 0.945))
-#--------------------------------------------------------------------------------------------------------------------------
-# Violin plots -- Detail and Coherence interaction effects (Figure 4E)
-plot_int1 <- cbind.data.frame("Detail" = posterior_det_exp1$`b_ConditionImagine:Detail_C`, 
-                              "Coherence" = posterior_coh_exp1$`b_ConditionImagine:Coherence_C`)
-plot_int1 <- plot_int1 %>% gather("Detail", "Coherence", 
-                                 key = Condition, value = Posterior)
-violin_int1 <- violin_bayes(plot_int1, HDI_range = c(0.055, 0.945))[[1]]
-violin_int1 +
-  labs(x="Vividness by Condition Interactions", y ="logit") +
-  theme(legend.position = "none") +
-  ylim(-0.5, 1.5) +  
-  scale_fill_manual(values = c(palette[6], palette[7])) +
-  scale_color_manual(values = c(palette[6], palette[7]))
+#---------------------------------------------------------------------------------------------------------------------------
+# Generate figure
+grid.arrange(grid.arrange(freqplot_det1 + ggtitle('a'), freqplot_coh1 + ggtitle('b'), ncol = 2), 
+             violin_det1 + ggtitle('c'), 
+             violin_coh1 + ggtitle('d'), nrow = 3)
+
 #--------------------------------------------------------------------------------------------------------------------------
 # Predicted linear trend overlay compression of scale constraint:: Detail (Figure 6A)
 detplot1 <- conditional_effects(Bayes_det_exp1)
-plot(detplot1)[[3]] +
+compress_det1 <- plot(detplot1)[[3]] +
   xlim(-4, 5) +
   geom_abline(intercept = 5.41, slope = 0.26, colour = "black", linetype = 'dashed') + 
+  geom_abline(intercept = 4.58, slope = 0.18, colour = "black", linetype = 'dashed') +
   theme_classic() +  
   labs(x = "Detail", y = "Willingness to help") +
   scale_fill_discrete(name = "Condition", labels = c("Estimate Helping", "Imagine Helping")) +
   scale_fill_manual(values = c(palette[2], palette[3]),
                     labels = c("Estimate Helping", "Imagine Helping")) +
   scale_color_manual(values = c(palette[2], palette[3]),
-                     labels = c("Estimate Helping", "Imagine Helping")) 
+                     labels = c("Estimate Helping", "Imagine Helping")) +
+  theme(legend.position = 'None', 
+        text = element_text (size = 15))
 #--------------------------------------------------------------------------------------------------------------------------
 # Predicted linear trend overlay compression of scale constraint: Coherence (Figure 6C)
 cohplot1 <- conditional_effects(Bayes_coh_exp1)
-plot(cohplot1)[[3]] +
+compress_coh1 <- plot(cohplot1)[[3]] +
   xlim(-4, 4) +
   geom_abline(intercept = 5.35, slope = 0.38, colour = "black", linetype = 'dashed') +
+    geom_abline(intercept = 4.62, slope = 0.23, colour = "black", linetype = 'dashed') +
   theme_classic() +  
   scale_fill_discrete(name = "Condition", labels = c("Estimate Helping", "Imagine Helping")) +
   labs(x = "Coherence", y = "Willingness to help") +
@@ -439,7 +448,9 @@ plot(cohplot1)[[3]] +
                     labels = c("Estimate Helping", "Imagine Helping")) +
   scale_color_manual(values = c(palette[2], palette[3]),
                      labels = c("Estimate Helping", "Imagine Helping")) +
-  theme(legend.position = 'None')
+  theme(legend.position = 'None',
+        text = element_text (size = 15))
+
 ``` 
 
 
@@ -512,7 +523,7 @@ anova(PSE_exp2, ddf = 'Kenward-Roger')
 # Effect Size
 r.squaredGLMM(PSE_exp2)
 # Post hoc comparisons
-posthoc_exp2
+posthoc_exp2 <- emmeans(PSE_exp2, pairwise ~ Condition, adjust = 'bonferroni' )
 confint(posthoc_exp2)
 ```
 
@@ -553,28 +564,38 @@ confint(ordinal_det2, "ConditionImagine:Detail_C")
 #### Plots: Figure 3B and Figure 3D
 ```{r}
 # Detail (Figure 3B)
-freqplot_det.df2 <- ggpredict(int_det_exp2, c("Detail_C[-4,0,4]","Condition"))
-ggplot(freqplot_det.df2, aes(x, predicted, colour = group)) +
-  geom_line() +
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group, color = NULL), alpha = .4) +
-  theme_classic() +
-  labs(title = "",x = "Detail", y = "Willingness to help", fill = "Condition") +
-  scale_color_manual(values = c(palette[2], palette[3]), 
-                     labels = c("Estimate Helping", "Imagine Helping")) +
-  scale_fill_manual(values = c(palette[2], palette[3]), 
-                    labels = c("Estimate Helping", "Imagine Helping"))
+freqplot_det2 <- ggpredict(int_det_exp2, c("Detail_C[-4,0,4]","Condition")) %>% 
+  ggplot(aes(x, predicted, colour = group)) +
+         geom_line() +
+         geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group, color = NULL), alpha = .4) +
+         theme_classic() +
+         labs(title = "",x = "Detail", y = "Willingness to help", fill = "Condition") +
+         scale_color_manual(values = c(palette[2], palette[3]), 
+                            labels = c("Estimate Helping", "Imagine Helping")) +
+         scale_fill_manual(values = c(palette[2], palette[3]), 
+                           labels = c("Estimate Helping", "Imagine Helping")) +
+         coord_cartesian(ylim = c(1, 7)) + 
+         expand_limits(y = c(1, 7)) + 
+         scale_y_discrete(limits = c(1, 2, 3, 4, 5, 6, 7)) + 
+         theme(legend.position = 'None', text = element_text(size = 15),
+               axis.text.x = element_text(size = 12))
 #-------------------------------------------------------------------------------------------------------------------------
 # Coherence (Figure 3D)
-freqplot_coh.df2 <- ggpredict(int_coh_exp2, c("Coherence_C[-4,0,4]","Condition"))
-ggplot(freqplot_coh.df2, aes(x, predicted, colour = group)) +
-  geom_line() +
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group, color = NULL), alpha = .4) +
-  theme_classic() +
-  labs(title = "", x = "Coherence", y = "Willingness to help", fill = "Condition") +
-  scale_color_manual(values = c(palette[2], palette[3]), 
-                     labels = c("Estimate Helping", "Imagine Helping")) +
-  scale_fill_manual(values = c(palette[2], palette[3]), 
-                    labels = c("Estimate Helping", "Imagine Helping")) 
+freqplot_coh2 <- ggpredict(int_coh_exp2, c("Coherence_C[-4,0,4]","Condition")) %>% 
+  ggplot(aes(x, predicted, colour = group)) +
+         geom_line() +
+         geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group, color = NULL), alpha = .4) +
+         theme_classic() +
+         labs(title = "", x = "Coherence", y = "Willingness to help", fill = "Condition") +
+         scale_color_manual(values = c(palette[2], palette[3]), 
+                            labels = c("Estimate Helping", "Imagine Helping")) +
+         scale_fill_manual(values = c(palette[2], palette[3]), 
+                           labels = c("Estimate Helping", "Imagine Helping")) + 
+         coord_cartesian(ylim = c(1, 7)) + 
+         expand_limits(y = c(1, 7)) + 
+         scale_y_discrete(limits = c(1, 2, 3, 4, 5, 6, 7)) + 
+         theme(legend.position = 'None', text = element_text(size = 15),
+               axis.text.x = element_text(size = 12))
 ```
 
 
@@ -615,22 +636,27 @@ posterior_summary(OR2, probs = c(0.055, 0.945))
 PSE_plots2 <- ER_help2$samples
 colnames(PSE_plots2)<- c("Identify", "Estimate")
 PSE_plots2 <- PSE_plots2 %>% gather("Identify", "Estimate", key = Condition, value = Posterior)
-violin_PSE2 <- violin_bayes(PSE_plots2, HDI_range = c(0.055, 0.945))[[1]]
-violin_PSE2 +
+violin_PSE2 <- violin_bayes(PSE_plots2, HDI_range = c(0.055, 0.945))[[1]] +
   labs(x = "Condition Contrasts", y = "logit") +
-  theme(legend.position = "none") +
+  theme(legend.position = "none",
+        text = element_text (size = 20),
+        axis.text.x = element_text(size = 16)) +
   scale_x_discrete(labels = c( "Imagine Helping > Estimate Helping", "Imagine Helping > Identify Media Source")) +
   scale_fill_manual(values = c(palette[4], palette[5])) +
-  scale_color_manual(values = c(palette[4], palette[5]))
+  scale_color_manual(values = c(palette[4], palette[5])) 
 #-------------------------------------------------------------------------------------------------------------------------------
 # Predicted probability in each response category (Figure 2D)
 PSE_plot_exp2 <- conditional_effects(Bayes_Help_exp2, categorical = T)
-plot(PSE_plot_exp2)[[1]] +
+Prob_plot2 <- plot(PSE_plot_exp2)[[1]] +
   scale_x_discrete(labels = c("Identify Media Source", "Estimate Helping", "Imagine Helping")) +
   theme_classic() +
   xlab("Condition") +
   ylim(0, 0.45) +
-  theme(legend.position = "none")
+  theme(legend.position = "none",
+        text = element_text (size = 20),
+        axis.text.x = element_text(size = 16))
+
+grid.arrange(violin_PSE2 + ggtitle('a'), Prob_plot2 + ggtitle('b'), nrow = 2)
 ```
 
 ### Vividness measures by Condition interactions
@@ -693,16 +719,17 @@ latent_SD(posterior_coh_exp2)
 ```{r}
 # Violin plots -- Detail: Separate Conditions (Figure 4B)
 det_posterior2 <- cbind.data.frame("Estimate Helping" = posterior_det_exp2$b_Detail_C, 
-                                   "Imagine Helping" = posterior_det_exp2$b_Detail_C + posterior_det_exp2$`b_ConditionImagine:Detail_C`)
-plot_det2 <- det_posterior2 %>% gather("Estimate Helping", "Imagine Helping", key = Condition, value = Posterior)
-violin_det2 <- violin_bayes(plot_det2, HDI_range = c(0.055, 0.945))[[1]]
-violin_det2 +
-  labs(x = "Condition", y = "logit") +
-  theme(legend.position = 'none') +
-  ylim(-0.2, 1.5) +
-  scale_x_discrete(limits = c("Imagine Helping", "Estimate Helping")) +
-  scale_fill_manual(values = c(palette[2], palette[3])) +
-  scale_color_manual(values = c(palette[2], palette[3]))
+                                   "Imagine Helping" = posterior_det_exp2$b_Detail_C + posterior_det_exp2$`b_ConditionImagine:Detail_C`,
+                                   "Detail x Condition" = posterior_det_exp2$`b_ConditionImagine:Detail_C`)
+plot_det2 <- det_posterior2 %>% gather("Estimate Helping", "Imagine Helping","Detail x Condition", key = Condition, value = Posterior)
+violin_det2 <- violin_bayes(plot_det2, HDI_range = c(0.055, 0.945))[[1]] +
+  labs(x = "", y = "logit") +
+  theme(legend.position = 'none',
+        text = element_text(size = 15)) +
+  ylim(-0.6, 1.5) +
+  scale_x_discrete(limits = c("Imagine Helping", "Estimate Helping", "Detail x Condition")) +
+  scale_fill_manual(values = c(palette[7], palette[3], palette[2])) +
+  scale_color_manual(values = c(palette[7], palette[3], palette[2]))
 
 # Summary
 violin_bayes(plot_det2, HDI_range = c(0.055, 0.945))[[2]]
@@ -713,16 +740,17 @@ posterior_summary(exp(det_posterior2), probs = c(0.055, 0.945))
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 # Violin plots -- Coherence: Separate Conditions (Figure 4D)
 coh_posterior2 <- cbind.data.frame("Estimate Helping" = posterior_coh_exp2$b_Coherence_C, 
-                                   "Imagine Helping" = posterior_coh_exp2$b_Coherence_C + posterior_coh_exp2$`b_ConditionImagine:Coherence_C`)
-plot_coh2 <- coh_posterior2 %>% gather("Estimate Helping", "Imagine Helping", key = Condition, value = Posterior)
-violin_coh2 <- violin_bayes(plot_coh2, HDI_range = c(0.055, 0.945))[[1]]
-violin_coh2 +
-  labs(x = "Condition", y = "logit") +
-  theme(legend.position = 'none') +
-  scale_x_discrete(limits = c("Imagine Helping","Estimate Helping")) +
-  ylim(-0.2, 1.5) +
-  scale_fill_manual(values = c(palette[2], palette[3])) +
-  scale_color_manual(values = c(palette[2], palette[3]))
+                                   "Imagine Helping" = posterior_coh_exp2$b_Coherence_C + posterior_coh_exp2$`b_ConditionImagine:Coherence_C`,
+                                   "Coherence x Condition" = posterior_coh_exp2$`b_ConditionImagine:Coherence_C`)
+plot_coh2 <- coh_posterior2 %>% gather("Estimate Helping", "Imagine Helping", "Coherence x Condition", key = Condition, value = Posterior)
+violin_coh2 <- violin_bayes(plot_coh2, HDI_range = c(0.055, 0.945))[[1]] +
+  labs(x = "", y = "logit") +
+  theme(legend.position = 'none',
+        text = element_text(size = 15)) +
+  scale_x_discrete(limits = c("Imagine Helping","Estimate Helping", "Coherence x Condition")) +
+  ylim(-0.2, 1.6) +
+  scale_fill_manual(values = c(palette[6], palette[3], palette[2])) +
+  scale_color_manual(values = c(palette[6], palette[3], palette[2])) 
 
 # Summary
 violin_bayes(plot_coh2, HDI_range = c(0.055, 0.945))[[2]]
@@ -731,43 +759,45 @@ p_direction(coh_posterior2)
 # OR
 posterior_summary(exp(coh_posterior2), probs = c(0.055, 0.945))
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
-# Violin plots -- Detail and Coherence interaction effects (Figure 4F)
-plot_int2 <- cbind.data.frame("Detail" = posterior_det_exp2$`b_ConditionImagine:Detail_C`, "Coherence" = posterior_coh_exp2$`b_ConditionImagine:Coherence_C`)
-plot_int2 <- plot_int2 %>% gather("Detail", "Coherence", key = Condition, value = Posterior)
-violin_int2 <- violin_bayes(plot_int2, HDI_range = c(0.055, 0.945))[[1]]
-violin_int2 +
-  labs(x = "Vividness by Condition Interactions", y = "logit") + 
-  theme(legend.position = "none") +
-  scale_x_discrete(labels = c( "Coherence", "Detail")) +
-  ylim(-0.5, 1.5) + 
-  scale_fill_manual(values = c(palette[6], palette[7])) +
-  scale_color_manual(values = c(palette[6], palette[7]))
+grid.arrange(grid.arrange(freqplot_det2 + ggtitle('a'), freqplot_coh2 + ggtitle('b') + labs(y = ""), ncol = 2), 
+             violin_det2 + ggtitle('c'), 
+             violin_coh2 + ggtitle('d'), nrow = 3)
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 # Predicted linear trend: Detail (Figure 6B)
 detplot2 <- conditional_effects(Bayes_det_exp2)
-plot(detplot2)[[3]] +
+compress_det2 <- plot(detplot2)[[3]] +
   xlim(-4, 4) +
   geom_abline(intercept = 4.96, slope = 0.36, colour = "black", linetype = 'dashed') +
+  geom_abline(intercept = 4.16, slope = 0.21, colour = "black", linetype = 'dashed') +
   theme_classic() +  
   scale_fill_discrete(name = "Condition", labels = c("Estimate Helping", "Imagine Helping")) +
   labs(x = "Detail", y = "Willingness to help") +
   scale_fill_manual(values = c(palette[2], palette[3]),
                     labels = c("Estimate Helping", "Imagine Helping")) +
   scale_color_manual(values = c(palette[2], palette[3]),
-                     labels = c("Estimate Helping", "Imagine Helping")) 
+                     labels = c("Estimate Helping", "Imagine Helping")) + 
+  theme(legend.position = 'None', 
+        text = element_text (size = 15))
 #-------------------------------------------------------------------------------------------------------------------------------------------------------
 # Predicted linear trend: Coherence (Figure 6D)
 cohplot2 <- conditional_effects(Bayes_coh_exp2)
-plot(cohplot2)[[3]] +
+compress_coh2 <- plot(cohplot2)[[3]] +
   xlim(-4, 3) +
   geom_abline(intercept = 4.92, slope = 0.55, colour = "black", linetype = 'dashed') +
+  geom_abline(intercept = 4.20, slope = 0.32, colour = "black", linetype = 'dashed') +
   theme_classic() +  
   scale_fill_discrete(name = "Condition", labels = c("Estimate Helping", "Imagine Helping")) +
   labs(x = "Coherence", y = "Willingness to help") +
   scale_fill_manual(values = c(palette[2], palette[3]),
                     labels = c("Estimate Helping", "Imagine Helping")) +
   scale_color_manual(values = c(palette[2], palette[3]),
-                     labels = c("Estimate Helping", "Imagine Helping"))
+                     labels = c("Estimate Helping", "Imagine Helping")) + 
+  theme(legend.position = 'None', 
+        text = element_text (size = 15))
+
+
+grid.arrange(grid.arrange(compress_det1 + ggtitle('a') + labs(x = ''), compress_coh1 + ggtitle('c') + labs(x = '', y = ''), ncol = 2), 
+            grid.arrange(compress_det2 + ggtitle('b'), compress_coh1 + ggtitle('d') + labs(y = ""), ncol = 2), nrow = 2)
 ```
 
 
@@ -914,11 +944,12 @@ plot_int3 <- cbind.data.frame("Detail" = posterior_det_combine$`b_ConditionImagi
 plot_int3 <- plot_int3 %>% gather("Detail", "Coherence", key = Condition, value = Posterior)
 violin_int3 <- violin_bayes(plot_int3, HDI_range = c(0.055, 0.945))[[1]]
 violin_int3 +
-  labs(x = "Vividness by Condition Interactions", y = "logit")+ 
+  labs(x = "Vividness Measure by Condition Interactions", y = "logit")+ 
   theme(legend.position = "None") +
   ylim(-0.5, 1) +
   scale_fill_manual(values=c(palette[6], palette[7])) +
-  scale_color_manual(values = c(palette[6], palette[7]))
+  scale_color_manual(values = c(palette[6], palette[7])) +
+  scale_x_discrete(limits = c("Detail", "Coherence"))
 ```
 
 
