@@ -7,17 +7,6 @@ output: html_document
 ---
 
 # Session Setup
-```{r}
-library(checkpoint)
-checkpoint(
-  snapshotDate = "2020-10-01"
-  , R.version = "3.6.2" # replaced with your version of R
-  , checkpointLocation = "." # replaced with your own directory
-)
-
-rm(list = ls()); gc()
-```
-
 
 # Package and directory set up
 ```{r setup, include = FALSE}
@@ -262,12 +251,14 @@ bayes_samples(Bayes_Help_exp1)
 # Summary
 summary(Bayes_Help_exp1, prob = 0.89)
 # Evidence ratio (not reported)
-ER_help1 <- hypothesis(Bayes_Help_exp1, c('ConditionImagine > 0' , 'ConditionImagine - ConditionEstimate > 0'))
+ER_help1 <- hypothesis(Bayes_Help_exp1, c('ConditionImagine > 0' , 
+                                          'ConditionImagine - ConditionEstimate > 0', 
+                                          'ConditionEstimate > 0'))
 # pd
 colMeans(ER_help1$samples > 0)
 # OR
 OR1 <- exp(ER_help1$samples)
-colnames(OR1) <- c("Imagine - Identify", "Imagine - Estimate")
+colnames(OR1) <- c("Imagine - Identify", "Imagine - Estimate", "Estimate - Identify")
 posterior_summary(OR1, probs = c(0.055, 0.945))
 
 # Extract posterior samples 
@@ -621,12 +612,14 @@ bayes_samples(Bayes_Help_exp2)
 # Summary
 summary(Bayes_Help_exp2, prob = 0.89)
 # Evidence Ratios (not reported)
-(ER_help2 <- hypothesis(Bayes_Help_exp2, hypothesis = c("ConditionImagine > 0", "ConditionImagine - ConditionEstimate > 0"), alpha = 0.055, seed = 67))
+(ER_help2 <- hypothesis(Bayes_Help_exp2, hypothesis = c("ConditionImagine > 0", 
+                                                        "ConditionImagine - ConditionEstimate > 0",
+                                                        "ConditionEstimate > 0"), alpha = 0.055, seed = 67))
 # pd
 colMeans(ER_help2$samples > 0)
 # OR
 OR2 <- exp(ER_help2$samples)
-colnames(OR2) <- c("Imagine-Identify", "Imagine-Estimate")
+colnames(OR2) <- c("Imagine-Identify", "Imagine-Estimate", "Estimate-Identify")
 posterior_summary(OR2, probs = c(0.055, 0.945))
 ```
 
@@ -942,14 +935,14 @@ latent_SD(posterior_coh_combine)
 plot_int3 <- cbind.data.frame("Detail" = posterior_det_combine$`b_ConditionImagine:Detail_C`,
                              "Coherence" = posterior_coh_combine$`b_ConditionImagine:Coherence_C`)
 plot_int3 <- plot_int3 %>% gather("Detail", "Coherence", key = Condition, value = Posterior)
-violin_int3 <- violin_bayes(plot_int3, HDI_range = c(0.055, 0.945))[[1]]
-violin_int3 +
+violin_int3 <- violin_bayes(plot_int3, HDI_range = c(0.055, 0.945))[[1]] +
   labs(x = "Vividness Measure by Condition Interactions", y = "logit")+ 
   theme(legend.position = "None") +
   ylim(-0.5, 1) +
   scale_fill_manual(values=c(palette[6], palette[7])) +
   scale_color_manual(values = c(palette[6], palette[7])) +
-  scale_x_discrete(limits = c("Detail", "Coherence"))
+  scale_x_discrete(limits = c("Detail", "Coherence")) +
+  theme(text = element_text(size = 15))
 ```
 
 
